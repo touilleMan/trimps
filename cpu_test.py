@@ -1,20 +1,29 @@
+#! /usr/bin/env python
+
 import unittest
 from cpu import Cpu
 
-class Test_memory(unittest.TestCase):
 
-    def __callback__(self):
-        return True
+class Test_memory(unittest.TestCase):
+    mem = 0
+
+    def __callback__(self, val=None):
+        if val is None:
+            return self.mem
+        else:
+            self.mem = val
 
     def testBind(self):
         cpu = Cpu()
         cpu.memory.bind(0x42, self.__callback__)
-        self.assertTrue(cpu.memory[0x42])
+        cpu.memory[0x42] = 0x11
+        self.assertEqual(cpu.memory[0x42], 0x11, 'IO bind failed')
 
     def testMemory(self):
         cpu = Cpu()
         cpu.memory[0x42] = 1
         self.assertEqual(cpu.memory[0x42], 1)
+
 
 class Test_execute(unittest.TestCase):
 
@@ -38,6 +47,7 @@ class Test_execute(unittest.TestCase):
         good_r[3] = 42
         cpu.execute(0b00000000001001100001100000100100)
         self.assertEqual(cpu.r, good_r, 'AND $3, $1, $6 failed')
+
 
 class Test_execute_R(unittest.TestCase):
 

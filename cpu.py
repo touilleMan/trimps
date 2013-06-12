@@ -1,4 +1,7 @@
+#! /usr/bin/env python
+
 import struct
+
 
 class LoaderError(Exception):
     def __init__(self, value):
@@ -53,8 +56,9 @@ class Memory():
         self.mem[address] = item
 
     def bind(self, address, callback):
-        """Assign a callback to an address in memory"""
+        """Assign an I/O callback to an address in memory"""
         self.mem[address] = callback
+
 
 class Cpu():
     """Emulate the embedded MIPS CPU"""
@@ -165,10 +169,3 @@ class Cpu():
 
     def execute_J_JUMP(self, addr):
         self.pc = (self.pc & (0xF << 28)) + addr * 4
-
-
-if __name__ == '__main__':
-    cpu = Cpu()
-    cpu.program.load("../gopiler/a.out")
-    while True:
-        cpu.step()
