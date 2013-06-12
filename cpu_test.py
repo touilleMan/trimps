@@ -86,6 +86,28 @@ class Test_execute_R(unittest.TestCase):
         self.assertEqual(cpu.r, good_r, 'SLR $1, $3, 32 failed')
 
 
+class Test_execute_I(unittest.TestCase):
+
+    def testBEQ(self):
+        cpu = Cpu()
+        cpu.execute_I_BEQ(0, 0, 0x42)
+        self.assertEqual(cpu.pc, 0x42 << 2, 'BEQ $0, $0, 0x42 failed')
+        cpu.execute_I_BEQ(0, 0, -0x42)
+        self.assertEqual(cpu.pc, 0, 'BEQ $0, $0, 0x42 failed')
+
+
+class Test_execute_J(unittest.TestCase):
+
+    def testJump(self):
+        cpu = Cpu()
+        cpu.execute_J_JUMP(0x4)
+        print hex(cpu.pc)
+        self.assertEqual(cpu.pc, 0x4 << 2, 'JUMP 0x4 failed')
+
+        cpu.execute_J_JUMP(-0x44)
+        self.assertEqual(cpu.pc, -0x44 << 2, 'JUMP -0x44 failed')
+        cpu.execute_J_JUMP(0x4)
+
 
 if __name__ == '__main__':
     unittest.main()
