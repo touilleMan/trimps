@@ -1,6 +1,21 @@
 import unittest
 from cpu import Cpu
 
+class Test_memory(unittest.TestCase):
+
+    def __callback__(self):
+        return True
+
+    def testBind(self):
+        cpu = Cpu()
+        cpu.memory.bind(0x42, self.__callback__)
+        self.assertTrue(cpu.memory[0x42])
+
+    def testMemory(self):
+        cpu = Cpu()
+        cpu.memory[0x42] = 1
+        self.assertEqual(cpu.memory[0x42], 1)
+
 class Test_execute(unittest.TestCase):
 
     def testGeneric(self):
@@ -101,7 +116,6 @@ class Test_execute_J(unittest.TestCase):
     def testJump(self):
         cpu = Cpu()
         cpu.execute_J_JUMP(0x4)
-        print hex(cpu.pc)
         self.assertEqual(cpu.pc, 0x4 << 2, 'JUMP 0x4 failed')
 
         cpu.execute_J_JUMP(-0x44)

@@ -10,7 +10,9 @@ class LoaderError(Exception):
 
 class Program():
     """Handle de input MIPS binary"""
-    instructions = []
+
+    def __init__(self):
+        self.instructions = []
 
     def load(self, path):
         # Get the input binary as bit array
@@ -39,12 +41,20 @@ class Memory():
 
     def __getitem__(self, address):
         # Check if the address point on something
-        if self.mem[address] is None:
+        if not self.mem.has_key(address):
             return 0x0
+        if self.mem[address] is callable:
+            return self.mem[address]()
         return self.mem[address]
 
     def __setitem__(self, address, item):
+        if self.mem.has_key(address) and self.mem[address] is callable:
+            self.mem[address](item)
         self.mem[address] = item
+
+    def bind(self, address, callback):
+        """Assign a callback to an address in memory"""
+        self.mem[address] = callback
 
 class Cpu():
     """Emulate the embedded MIPS CPU"""
@@ -59,7 +69,6 @@ class Cpu():
     def step(self):
         """Run the CPU to compute the next operation"""
         instruction = self.program.fetch(self.pc)
-        print "pc : " + str(self.pc),
         self.execute(instruction)
         # r0 is always == 0x0, reset it in case it has changed
         self.r[0] = 0x00000000
@@ -93,19 +102,16 @@ class Cpu():
             rd = (instruction >> 11) & 0x1F
             shamt = (instruction >> 6) & 0x1F
             funct = instruction & 0x3F
-            print "R funct : " + hex(funct)
             OPCODES_R[opcode](rs, rt, rd, shamt, funct)
 
         elif opcode in OPCODES_I:
             rs = (instruction >> 21) & 0x1F
             rt = (instruction >> 16) & 0x1F
             immed = instruction & 0xFFFF
-            print "I immed : " + hex(immed) + " " + OPCODES_I[opcode][1]
             OPCODES_I[opcode][0](rs, rt, immed)
 
         elif opcode in OPCODES_J:
             addr = instruction & 0x03FFFFFF
-            print "J addr : " + hex(addr)
             OPCODES_J[opcode](addr)
 
         else:
@@ -134,7 +140,6 @@ class Cpu():
         self.r[rd] = res
 
     def execute_I_BEQ(self, rs, rt, immed):
-        print "Branch ! " + str(rs == rt)
         if immed & 1 << 15 == 1:
             branch_addr = 0b1111 << 28
         else:
@@ -159,7 +164,6 @@ class Cpu():
         self.r[rt] = self.r[rs] + immed
 
     def execute_J_JUMP(self, addr):
-        print "Jump ! " + hex(addr)
         self.pc = (self.pc & (0xF << 28)) + addr * 4
 
 
