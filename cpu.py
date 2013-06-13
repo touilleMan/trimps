@@ -12,12 +12,13 @@ class LoaderError(Exception):
 
 
 class Program():
-    """Handle de input MIPS binary"""
+    """Handle input MIPS binary"""
 
     def __init__(self):
         self.instructions = []
 
     def load(self, path):
+        """Load a MIPS binary from a file"""
         # Get the input binary as bit array
         with open(path, "rb") as fd:
             data = fd.read()
@@ -37,27 +38,47 @@ class Program():
 
 
 class Memory():
-    """RAM and I/O are stored here"""
+    """Representation of the virtual memory
+       physical RAM and I/O (through bindings on callbacks)
+       are stored here
+    """
 
     def __init__(self):
+        # Memory representation
         self.mem = {}
+        # Store the bindings for IO callbacks
+        self.bindings = []
 
     def __getitem__(self, address):
-        # Check if the address point on something
-        if not self.mem.has_key(address):
-            return 0x0
-        if self.mem[address] is callable:
-            return self.mem[address]()
-        return self.mem[address]
+        # Default value of any uninitialized memory area
+        item = 0x00000000
+        # First check if the address points on something in memory
+        if self.mem.has_key(address):
+            item = self.mem[address]
+        # Now check if the address is part of bindings and execute them if any
+        for bind in filter(lambda x: x['address'] == address, self.bindings):
+            # Set only the binding's bits of interest
+            item &= ~bind['bitmask']
+            item |= bind['callback'][address] & bind['bitmask']
+        return item
 
     def __setitem__(self, address, item):
-        if self.mem.has_key(address) and self.mem[address] is callable:
-            self.mem[address](item)
+        # First set the item in memory
         self.mem[address] = item
+        # Then check if the address is part of bindings and execute them if any
+        for bind in filter(lambda x: x['address'] == address, self.bindings):
+            # Only pass the the callback the bits of interest
+            bind['callback'][address] = item & bind['bitmask']
 
-    def bind(self, address, callback):
-        """Assign an I/O callback to an address in memory"""
-        self.mem[address] = callback
+    def bind(self, address, callback, bitmask = 0xFFFFFFFF):
+        """Assign a callback when accessing a memory area
+         - address : address of the memory area
+         - bitmask : bits of interest inside the memory area
+         - callback : object to call, must implement
+                      __setitem__() and __getitem__()
+        """
+        self.bindings.append({ 'address' : address, 'bitmask' : bitmask,
+                               'callback' : callback })
 
 
 class Cpu():
@@ -71,7 +92,7 @@ class Cpu():
         self.memory = Memory()
 
     def step(self):
-        """Run the CPU to compute the next operation"""
+        """Run the CPU one step further (i.e. execute the next instruction)"""
         instruction = self.program.fetch(self.pc)
         self.execute(instruction)
         # r0 is always == 0x0, reset it in case it has changed
@@ -79,7 +100,7 @@ class Cpu():
         self.pc += 4
 
     def execute(self, instruction):
-        """Make the CPU run the given instruction"""
+        """Execute the given instruction"""
 
         OPCODES_R = {
         0 : self.execute_R

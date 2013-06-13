@@ -3,21 +3,31 @@
 import unittest
 from cpu import Cpu
 
-
 class Test_memory(unittest.TestCase):
     mem = 0
 
-    def __callback__(self, val=None):
-        if val is None:
-            return self.mem
-        else:
-            self.mem = val
-
     def testBind(self):
+        bind = [0, 1, 2, 3, 4]
         cpu = Cpu()
-        cpu.memory.bind(0x42, self.__callback__)
-        cpu.memory[0x42] = 0x11
-        self.assertEqual(cpu.memory[0x42], 0x11, 'IO bind failed')
+
+        cpu.memory.bind(0x3, bind)
+        self.assertEqual(cpu.memory[0x3], bind[0x3], 'IO bind failed')
+
+        cpu.memory[0x3] = 0x11
+        self.assertEqual(0x11, bind[0x3], 'IO bind failed')
+
+        cpu.memory.bind(0x0, bind, bitmask=0b101)
+        cpu.memory[0x0] = 0b111
+        self.assertEqual(bind[0x0], 0b101, 'IO bind with bitmask failed')
+
+        cpu.memory[0x0] = 0
+        bind[0x0] = 0b111111
+        self.assertEqual(cpu.memory[0x0], 0b101, 'IO bind with bitmask failed')
+
+        cpu.memory[0x0] = 0b010
+        bind[0x0] = 0b111111
+        self.assertEqual(cpu.memory[0x0], 0b111, 'IO bind with bitmask failed')
+
 
     def testMemory(self):
         cpu = Cpu()
