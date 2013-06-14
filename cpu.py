@@ -59,7 +59,7 @@ class Memory():
         for bind in filter(lambda x: x['address'] == address, self.bindings):
             # Set only the binding's bits of interest
             item &= ~bind['bitmask']
-            item |= bind['callback'][address] & bind['bitmask']
+            item |= bind['getter']() & bind['bitmask']
         return item
 
     def __setitem__(self, address, item):
@@ -67,24 +67,32 @@ class Memory():
         self.mem[address] = item
         # Then check if the address is part of bindings and execute them if any
         for bind in filter(lambda x: x['address'] == address, self.bindings):
-            # Only pass the the callback the bits of interest
-            bind['callback'][address] = item & bind['bitmask']
+            # Use the setter callback with the bits of interest
+            bind['setter'](item & bind['bitmask'])
 
-    def bind(self, address, callback, bitmask = 0xFFFFFFFF):
+    def bind(self, address, bitmask = 0xFFFFFFFF, getter=None, setter=None):
         """Assign a callback when accessing a memory area
          - address : address of the memory area
+         - setter : callback function setter() -> int
+         - getter : callback function getter(int)
          - bitmask : bits of interest inside the memory area
-         - callback : object to call, must implement
-                      __setitem__() and __getitem__()
         """
         self.bindings.append({ 'address' : address, 'bitmask' : bitmask,
-                               'callback' : callback })
+                               'getter' : getter, 'setter' : setter })
 
 
 class Cpu():
     """Emulate the embedded MIPS CPU"""
 
+    def __str__(self):
+        string = 'Dump cpu registers :\n'
+        string += 'pc : {}\n'.format(self.pc)
+        for i in xrange(len(self.r)):
+            string += '\tr{d} : 0b{0:32b}\n'.format(i, self.r[i])
+        return string
+
     def __init__(self):
+        self.clock = 0
         self.pc = 0
         # MIPS has 31 general-purpose registers plus r0 (always 0 register)
         self.r = [ 0x00000000 for _ in xrange(32) ]
@@ -93,6 +101,7 @@ class Cpu():
 
     def step(self):
         """Run the CPU one step further (i.e. execute the next instruction)"""
+        self.clock += 1
         instruction = self.program.fetch(self.pc)
         self.execute(instruction)
         # r0 is always == 0x0, reset it in case it has changed
