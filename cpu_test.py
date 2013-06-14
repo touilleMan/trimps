@@ -1,38 +1,51 @@
 #! /usr/bin/env python
 
 import unittest
-from cpu import Cpu
+from cpu import Cpu, Memory
+
 
 class Test_memory(unittest.TestCase):
     mem = 0
 
+    class FakeMem():
+        def __init__(self, array, indice):
+            self.array = array
+            self.indice = indice
+        def setter(self, val):
+            self.array[self.indice] = val
+        def getter(self):
+            return self.array[self.indice]
+
     def testBind(self):
         bind = [0, 1, 2, 3, 4]
-        cpu = Cpu()
+        memory = Memory()
 
-        cpu.memory.bind(0x3, bind)
-        self.assertEqual(cpu.memory[0x3], bind[0x3], 'IO bind failed')
+        fm = self.FakeMem(bind, 0x3)
+        memory.bind(0x3, setter=fm.setter, getter=None)
+        memory[0x3] = 0x11
+        self.assertEqual(memory[0x3], bind[0x3], 'IO bind setter failed')
 
-        cpu.memory[0x3] = 0x11
-        self.assertEqual(0x11, bind[0x3], 'IO bind failed')
+        memory.bind(0x3, setter=None, getter=fm.getter)
+        self.assertEqual(0x11, bind[0x3], 'IO bind getter failed')
 
-        cpu.memory.bind(0x0, bind, bitmask=0b101)
-        cpu.memory[0x0] = 0b111
+        fm = self.FakeMem(bind, 0x0)
+        memory.bind(0x0, bitmask=0b101, setter=fm.setter, getter=fm.getter)
+        memory[0x0] = 0b111
         self.assertEqual(bind[0x0], 0b101, 'IO bind with bitmask failed')
 
-        cpu.memory[0x0] = 0
+        memory[0x0] = 0
         bind[0x0] = 0b111111
-        self.assertEqual(cpu.memory[0x0], 0b101, 'IO bind with bitmask failed')
+        self.assertEqual(memory[0x0], 0b101, 'IO bind with bitmask failed')
 
-        cpu.memory[0x0] = 0b010
+        memory[0x0] = 0b010
         bind[0x0] = 0b111111
-        self.assertEqual(cpu.memory[0x0], 0b111, 'IO bind with bitmask failed')
+        self.assertEqual(memory[0x0], 0b111, 'IO bind with bitmask failed')
 
 
     def testMemory(self):
-        cpu = Cpu()
-        cpu.memory[0x42] = 1
-        self.assertEqual(cpu.memory[0x42], 1)
+        memory = Memory()
+        memory[0x42] = 1
+        self.assertEqual(memory[0x42], 1)
 
 
 class Test_execute(unittest.TestCase):

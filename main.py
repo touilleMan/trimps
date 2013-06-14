@@ -2,13 +2,14 @@
 
 from datetime import datetime
 
-from cpu import Cpu
+from cpu import Cpu, Memory
 from robot import Robot
 
 def main():
-    cpu = Cpu()
+    memory = Memory()
+    cpu = Cpu(memory)
+    robot = Robot(memory)
     cpu.program.load('tests/battle.mips')
-    robot = Robot(cpu.memory)
 
     t_old = datetime.now()
     for i in xrange(12500000):

@@ -56,7 +56,7 @@ class Memory():
         if self.mem.has_key(address):
             item = self.mem[address]
         # Now check if the address is part of bindings and execute them if any
-        for bind in filter(lambda x: x['address'] == address, self.bindings):
+        for bind in filter(lambda x: x['address'] == address and x['getter'] is not None, self.bindings):
             # Set only the binding's bits of interest
             item &= ~bind['bitmask']
             item |= bind['getter']() & bind['bitmask']
@@ -66,7 +66,7 @@ class Memory():
         # First set the item in memory
         self.mem[address] = item
         # Then check if the address is part of bindings and execute them if any
-        for bind in filter(lambda x: x['address'] == address, self.bindings):
+        for bind in filter(lambda x: x['address'] == address and x['setter'] is not None, self.bindings):
             # Use the setter callback with the bits of interest
             bind['setter'](item & bind['bitmask'])
 
@@ -84,20 +84,23 @@ class Memory():
 class Cpu():
     """Emulate the embedded MIPS CPU"""
 
+    def __init__(self, memory=None):
+        self.clock = 0
+        self.pc = 0
+        # MIPS has 31 general-purpose registers plus r0 (always 0 register)
+        self.r = [ 0x00000000 for _ in xrange(32) ]
+        self.program = Program()
+        if memory is None:
+            self.memory = Memory()
+        else:
+            self.memory = memory
+
     def __str__(self):
         string = 'Dump cpu registers :\n'
         string += 'pc : {}\n'.format(self.pc)
         for i in xrange(len(self.r)):
             string += '\tr{d} : 0b{0:32b}\n'.format(i, self.r[i])
         return string
-
-    def __init__(self):
-        self.clock = 0
-        self.pc = 0
-        # MIPS has 31 general-purpose registers plus r0 (always 0 register)
-        self.r = [ 0x00000000 for _ in xrange(32) ]
-        self.program = Program()
-        self.memory = Memory()
 
     def step(self):
         """Run the CPU one step further (i.e. execute the next instruction)"""
