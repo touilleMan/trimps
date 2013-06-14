@@ -13,14 +13,14 @@ class Motor():
         self.rotor_angle = 0
         self.linear_speed = 0
 
-    def getter():
+    def getter(self):
         """Returns the state of the motor's magnets"""
         state = 0x0
         for i in xrange(len(self.magnets)):
             state |= self.magnets[i]['state'] << i
         return state
 
-    def setter(state):
+    def setter(self, state):
         """Set the motor's magnets"""
         # Copy the given magnets' state
         for i in xrange(len(self.magnets)):
