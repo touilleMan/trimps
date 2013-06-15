@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 from math import cos, sin, atan, pi
+import emulator
 
 class Motor():
     """Represents a simple step by step electric motor"""
@@ -30,7 +31,7 @@ class Motor():
         """Update the physical state of the motor"""
         # Compute strengths the magnets apply on the rotor
         strength = 0
-        for magnet in filter(lambda m: m['state'] == 1, self.magnets):
+        for magnet in [ m for m in self.magnets if m['state' == 1] ]:
             # Retreive the angle distance between the magnet an the rotor
             dangle = magnet['angle'] - self.rotor_angle
             if dangle > 180:
@@ -47,8 +48,7 @@ class Motor():
 class Robot():
     WIDTH = 10
     LENGTH = 10
-    def __init__(self, memory):
-        self.memory = memory
+    def __init__(self):
         # Physical position
         self.x = 0
         self.y = 0
@@ -62,14 +62,14 @@ class Robot():
                         getter=lambda : self.motorL.getter() << 16,
                         setter=lambda val: self.motorL.setter(val >> 16))
         self.memory.bind(address='0x10', bitmask=0x000000FF,
-                        getter=lambda : self.motorR.getter(),
-                        setter=lambda val: self.motorR.setter(val))
+                        getter=self.motorR.getter,
+                        setter=self.motorR.setter)
 
     def update(self, dt):
         """Update the motor physical state"""
         # Update the modules
-        self.motorR.update(dt)
-        self.motorL.update(dt)
+        self.motorR.update()
+        self.motorL.update()
 
         # Get the total speed from motors' one
         # The two motors have different speed,
@@ -78,7 +78,7 @@ class Robot():
         if self.motorR.linear_speed == 0 or self.motorL.linear_speed == 0 or \
            (self.motorR.linear_speed / self.motorR.linear_speed) != \
            (self.motorL.linear_speed / self.motorL.linear_speed):
-           straight = 0
+            straight = 0
         else:
             sign = self.motorR.linear_speed / self.motorR.linear_speed
             straight = sign * min([abs(self.motorR.linear_speed), abs(self.motorL.linear_speed)])
@@ -90,3 +90,9 @@ class Robot():
         self.angle = atan(turn / self.WIDTH) * dt
 
         print "x : {}, y : {}, angle : {}".format(self.x, self.y, self.angle)
+
+
+if __name__ == '__main__':
+    robot = Robot()
+    emulator.program_load("tests/battle.mips")
+    emulator.cpu_run(12500000)

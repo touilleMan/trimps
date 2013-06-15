@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 import unittest
-from cpu import Cpu, Memory
+from emulator import Cpu, Memory
 
 
 class Test_memory(unittest.TestCase):
@@ -149,10 +149,11 @@ class Test_execute_J(unittest.TestCase):
     def testJump(self):
         cpu = Cpu()
         cpu.execute_J_JUMP(0x4)
-        self.assertEqual(cpu.pc, 0x4 << 2, 'JUMP 0x4 failed')
+        self.assertEqual(cpu.fake_pc, 0x4, 'JUMP 0x4 failed')
 
         cpu.execute_J_JUMP(-0x44)
-        self.assertEqual(cpu.pc, -0x44 << 2, 'JUMP -0x44 failed')
+        # Must make and overflow on the uint32_t pc
+        self.assertEqual(cpu.fake_pc, -(1<<31)-0x44, 'JUMP -0x44 failed')
         cpu.execute_J_JUMP(0x4)
 
 

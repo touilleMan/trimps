@@ -14,5 +14,5 @@ $(TARGET): $(OBJ)
 	$(CC) -o $@ -c $< $(CFLAGS) $(INCLUDE)
 
 clean:
-	rm $(OBJ)
-	rm $(TARGET)
+	rm -f $(OBJ)
+	rm -f $(TARGET)

@@ -3,29 +3,32 @@
 from datetime import datetime
 import time
 
-from cpu import Cpu, Memory
 import emulator
-from robot import Robot
+#from robot import Robot
 
-def main():
-    memory = Memory()
-    cpu = Cpu(memory)
-    robot = Robot(memory)
-    cpu.program.load('tests/battle.mips')
+def pmodule():
+    memory = emulator.Memory()
+    cpu = emulator.Cpu(memory)
+#    robot = Robot(memory)
+    cpu.load('tests/battle.mips')
+    for _ in xrange(12500000):
+        # cpu clock : 12.5mHz
+        cpu.step()
 
+
+def cmodule():
     emulator.program_load('tests/battle.mips')
-    t_old = datetime.now()
     emulator.cpu_run(12500000)
     time.sleep(1)
     emulator.cpu_stop()
-#    for _ in xrange(12500000):
-        # cpu clock : 12.5mHz
-#        cpu.step()
-#        emulator.cpu_step()
 
-#        robot.update(dt)
+def main():
+    t_old = datetime.now()
+    pmodule()
+#    cmodule()
     t_current = datetime.now()
     print "should be 1s : " + str(t_current - t_old)
+
 
 
 if __name__ == '__main__':

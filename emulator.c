@@ -65,6 +65,8 @@ PyObject *program_load(PyObject* self __attribute__((unused)), PyObject* args)
     {
         free(program);
         program = NULL;
+        // program_size must be updated as well !
+        program_size = 0;
     }
 
     // Load the new program in a buffer
@@ -123,8 +125,10 @@ PyObject *set_memory(PyObject* self __attribute__((unused)), PyObject* args)
 
 static void cpu_step(void)
 {
-    // If fake_pc points outside the program, we just
-    // have to increment pc
+    // If we point outside of the loaded program, we consider
+    // the cpu does nothing.
+    // (Note that if no program is loaded, program_size must be 0
+    // to avoid segfault)
     if (fake_pc > program_size - 1)
     {
         ++fake_pc;
@@ -178,7 +182,7 @@ end:
 
 static void *cpu_main(void * p_data __attribute__((unused)))
 {
-    uint8_t running = 0;
+    uint8_t running = 1;
     struct timespec time_sleep =
     {
         .tv_sec = 0,
@@ -187,34 +191,27 @@ static void *cpu_main(void * p_data __attribute__((unused)))
     const uint64_t NSECS_PER_CLOCK = 1000000000 / CLOCKS_PER_SEC;
 
     // cpu_state is volatile and can be changed by another function call
-    while (1)
+    while (running)
     {
+        const clock_t clock_1 = clock();
+        // Compute the next instruction
+        cpu_step();
+        ++cpu_op_counter;
+        // Wait to respect the requested frequency
+        time_sleep.tv_nsec = cpu_nsec_slice - (clock() - clock_1) * NSECS_PER_CLOCK;
+        if (time_sleep.tv_nsec > 0)
+            nanosleep(&time_sleep, NULL);
+
         pthread_mutex_lock(&cpu_state_mutex);
         running = (cpu_state == CPU_RUNNING);
         pthread_mutex_unlock(&cpu_state_mutex);
-
-        if (running)
-        {
-            const clock_t clock_1 = clock();
-            // Make the CPU run at the given frequency
-            cpu_step();
-            ++cpu_op_counter;
-            // Wait before the next instruction if needed
-            time_sleep.tv_nsec = cpu_nsec_slice - (clock() - clock_1) * NSECS_PER_CLOCK;
-            if (time_sleep.tv_nsec > 0)
-                nanosleep(&time_sleep, NULL);
-        }
-        else
-        {
-            time_sleep.tv_nsec = cpu_nsec_slice;
-            nanosleep(&time_sleep, NULL);
-        }
     }
+
     return NULL;
 }
 
 static PyObject *cpu_run(PyObject* self __attribute__((unused)),
-                         PyObject* args __attribute__((unused)))
+                         PyObject* args)
 {
     uint32_t frequency = 0;
     // TODO : exception if frequency == 0
@@ -225,7 +222,9 @@ static PyObject *cpu_run(PyObject* self __attribute__((unused)),
     pthread_mutex_lock(&cpu_state_mutex);
     // Compute from the frequency the time slice for a single insruction
     cpu_nsec_slice = (CLOCKS_PER_SEC / frequency) * 1000000000;
+    // Start the thread containing the cpu's execution
     cpu_state = CPU_RUNNING;
+    pthread_create(&cpu_thread, NULL, cpu_main, NULL);
     pthread_mutex_unlock(&cpu_state_mutex);
 
     Py_RETURN_NONE;
@@ -234,9 +233,12 @@ static PyObject *cpu_run(PyObject* self __attribute__((unused)),
 static PyObject *cpu_stop(PyObject* self __attribute__((unused)),
                           PyObject* args __attribute__((unused)))
 {
+    // Signal to the cpu's execution thread to stop
     pthread_mutex_lock(&cpu_state_mutex);
     cpu_state = CPU_STOPPED;
     pthread_mutex_unlock(&cpu_state_mutex);
+    // Wait for the end of the thread before leaving
+    pthread_join(cpu_thread, NULL);
     printf("done %u operations\n", cpu_op_counter);
     Py_RETURN_NONE;
 }
@@ -393,5 +395,4 @@ static PyMethodDef EmulatorMethods[] =
 PyMODINIT_FUNC initemulator(void)
 {
     (void) Py_InitModule("emulator", EmulatorMethods);
-    pthread_create(&cpu_thread, NULL, cpu_main, NULL);
 }
