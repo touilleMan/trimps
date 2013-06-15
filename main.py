@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from cpu import Cpu, Memory
+import emulator
 from robot import Robot
 
 def main():
@@ -11,10 +12,12 @@ def main():
     robot = Robot(memory)
     cpu.program.load('tests/battle.mips')
 
+    emulator.program_load('tests/battle.mips')
     t_old = datetime.now()
-    for i in xrange(12500000):
+    for _ in xrange(12500000):
         # cpu clock : 12.5mHz
-        cpu.step()
+#        cpu.step()
+        emulator.cpu_step()
 
 #        robot.update(dt)
     t_current = datetime.now()
