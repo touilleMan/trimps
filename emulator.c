@@ -4,20 +4,43 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <time.h>
+#include <pthread.h>
 
 #define MEMORY_SIZE 1024 * 1024
+// TODO : handle various memory start address
 #define MIPS_START_ADDRESS 0x0
 
-// MIPS architecture
+typedef enum {
+	CPU_STOPPED = 0,
+	CPU_RUNNING,
+	CPU_STEP
+} e_cpu_state;
+
+// 12.5MHz cpu
+#define CPU_TIMESLICE (1 / 12500000)
+
+// Memory pool
+static pthread_mutex_t memory_mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint32_t memory[MEMORY_SIZE];
+
+// CPU specific ressources
+static pthread_t cpu_thread;
+static uint32_t cpu_op_counter = 0;
+static pthread_mutex_t cpu_state_mutex = PTHREAD_MUTEX_INITIALIZER;
+static uint8_t cpu_state = CPU_STOPPED;
+static long cpu_nsec_slice = 0;
+
 static uint32_t program_size = 0;
 static uint32_t *program = NULL;
+
+// MIPS architecture
+static uint32_t r[32];
 /*
  * Program is an array of uint32, but pc points on byte,
  * then we use a fake_pc (i.e. pc / 4) to save divisions
  */
 static uint32_t fake_pc = 0;
-static uint32_t r[32];
 
 // MIPS instructions
 static void instruction_R(uint32_t instruction);
@@ -30,15 +53,21 @@ static void instruction_I_ORI(uint32_t instruction);
 static void instruction_I_ADDI(uint32_t instruction);
 static void instruction_J_JUMP(uint32_t instruction);
 
-static PyObject *program_load(PyObject* self __attribute__((unused)), PyObject* args)
+PyObject *program_load(PyObject* self __attribute__((unused)), PyObject* args)
 {
 	char *path = NULL;
     if (!PyArg_ParseTuple(args, "s", &path))
         return NULL;
 
+	pthread_mutex_lock(&cpu_state_mutex);
+	cpu_state = CPU_STOPPED;
+
     // If another program was already loaded, we have to remove it
 	if (program != NULL)
+	{
 		free(program);
+		program = NULL;
+	}
 
 	// Load the new program in a buffer
     int fd = open(path, O_RDONLY);
@@ -53,25 +82,29 @@ static PyObject *program_load(PyObject* self __attribute__((unused)), PyObject* 
 
 	// Finally, reset the fake_pc to the beginning of the code
 	fake_pc = MIPS_START_ADDRESS;
-
+	pthread_mutex_unlock(&cpu_state_mutex);
     Py_RETURN_NONE;
 }
 
-static PyObject *get_memory(PyObject* self __attribute__((unused)), PyObject* args)
+PyObject *get_memory(PyObject* self __attribute__((unused)), PyObject* args)
 {
 	uint32_t address;
-
     if (!PyArg_ParseTuple(args, "i", &address))
         return NULL;
 
     // Address out of bounds, returns 0 data
     if (address < MEMORY_SIZE)
-	    return Py_BuildValue("i", memory[address]);
+	{
+		pthread_mutex_lock(&memory_mutex);
+		const uint32_t value = memory[address];
+		pthread_mutex_unlock(&memory_mutex);
+	    return Py_BuildValue("i", value);
+	}
    	else
 	    return Py_BuildValue("i", 0);
 }
 
-static PyObject *set_memory(PyObject* self __attribute__((unused)), PyObject* args)
+PyObject *set_memory(PyObject* self __attribute__((unused)), PyObject* args)
 {
 	uint32_t address;
 	uint32_t value;
@@ -81,13 +114,16 @@ static PyObject *set_memory(PyObject* self __attribute__((unused)), PyObject* ar
 
     // In case of address out of bounds, do nothing
     if (address < MEMORY_SIZE)
+    {
+		pthread_mutex_lock(&memory_mutex);
    		memory[address] = value;
+		pthread_mutex_unlock(&memory_mutex);
+   	}
 
     Py_RETURN_NONE;
 }
 
-static PyObject *cpu_step(PyObject* self __attribute__((unused)),
-	PyObject* args __attribute__((unused)))
+static void cpu_step(void)
 {
 	// If fake_pc points outside the program, we just
 	// have to increment pc
@@ -98,9 +134,8 @@ static PyObject *cpu_step(PyObject* self __attribute__((unused)),
 	}
 
 	const uint32_t instruction = program[fake_pc];
-	const uint32_t opcode = (instruction >> 26) & 0x3F;
-
-	switch (opcode)
+	// Switch on opcode
+	switch ((instruction >> 26) & 0x3F)
 	{
 	case 0x00:
 		instruction_R(instruction);
@@ -141,8 +176,65 @@ static PyObject *cpu_step(PyObject* self __attribute__((unused)),
 
 end:
 	++fake_pc;
+}
 
-    Py_RETURN_NONE;
+static void *cpu_main(void * p_data __attribute__((unused)))
+{
+	uint8_t running = 0;
+	struct timespec time_sleep = {
+		.tv_sec = 0,
+		.tv_nsec = 0
+	};
+	const uint64_t NSECS_PER_CLOCK = 1000000000 / CLOCKS_PER_SEC;
+
+	// cpu_state is volatile and can be changed by another function call
+	while (1)
+	{
+		pthread_mutex_lock(&cpu_state_mutex);
+		running = (cpu_state == CPU_RUNNING);
+		pthread_mutex_unlock(&cpu_state_mutex);
+
+		if (running)
+		{
+		    const clock_t clock_1 = clock();
+			// Make the CPU run at the given frequency
+			cpu_step();
+			++cpu_op_counter;
+			// Wait before the next instruction if needed
+	    	time_sleep.tv_nsec = cpu_nsec_slice - (clock() - clock_1) * NSECS_PER_CLOCK;
+	    	if (time_sleep.tv_nsec > 0)
+	    		nanosleep(&time_sleep, NULL);
+		}
+	}
+	return NULL;
+}
+
+static PyObject *cpu_run(PyObject* self __attribute__((unused)),
+	PyObject* args __attribute__((unused)))
+{
+	uint32_t frequency = 0;
+	// TODO : exception if frequency == 0
+	// TODO : make sure frequency is not too big
+	if (!PyArg_ParseTuple(args, "i", &frequency) || frequency == 0)
+        return NULL;
+
+	pthread_mutex_lock(&cpu_state_mutex);
+	// Compute from the frequency the time slice for a single insruction
+    cpu_nsec_slice = (CLOCKS_PER_SEC / frequency) * 1000000000;
+	cpu_state = CPU_RUNNING;
+	pthread_mutex_unlock(&cpu_state_mutex);
+
+	Py_RETURN_NONE;
+}
+
+static PyObject *cpu_stop(PyObject* self __attribute__((unused)),
+	PyObject* args __attribute__((unused)))
+{
+	pthread_mutex_lock(&cpu_state_mutex);
+	cpu_state = CPU_STOPPED;
+	pthread_mutex_unlock(&cpu_state_mutex);
+	printf("done %u operations\n", cpu_op_counter);
+	Py_RETURN_NONE;
 }
 
 static void instruction_R(const uint32_t instruction)
@@ -224,7 +316,11 @@ static void instruction_I_LW(const uint32_t instruction)
 
 	const uint32_t addr = r[rs] + immed;
 	if (addr < MEMORY_SIZE)
+	{
+		pthread_mutex_lock(&memory_mutex);
 		r[rt] = memory[addr];
+		pthread_mutex_unlock(&memory_mutex);
+	}
 	else
 		r[rt] = 0;
 }
@@ -237,7 +333,11 @@ static void instruction_I_SW(const uint32_t instruction)
 
 	const uint32_t addr = r[rs] + immed;
 	if (addr < MEMORY_SIZE)
+	{
+		pthread_mutex_lock(&memory_mutex);
 		memory[addr] = r[rt];
+		pthread_mutex_unlock(&memory_mutex);
+	}
 }
 
 static void instruction_I_ANDI(const uint32_t instruction)
@@ -279,7 +379,8 @@ static PyMethodDef EmulatorMethods[] =
 {
      {"get_memory", get_memory, METH_VARARGS, "Get the uint32 at the given address"},
      {"set_memory", set_memory, METH_VARARGS, "Set an uint32 at the given address"},
-     {"cpu_step", cpu_step, METH_VARARGS, "Make the CPU execute the next operation"},
+     {"cpu_run", cpu_run, METH_VARARGS, "Start the CPU at the given ferquency"},
+     {"cpu_stop", cpu_stop, METH_VARARGS, "Stop the execution of the CPU"},
      {"program_load", program_load, METH_VARARGS, "Load a MIPS binary program in memory"},
      {NULL, NULL, 0, NULL}
 };
@@ -287,5 +388,6 @@ static PyMethodDef EmulatorMethods[] =
 // Initialise the python module
 PyMODINIT_FUNC initemulator(void)
 {
-     (void) Py_InitModule("emulator", EmulatorMethods);
+    (void) Py_InitModule("emulator", EmulatorMethods);
+    pthread_create(&cpu_thread, NULL, cpu_main, NULL);
 }

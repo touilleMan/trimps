@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 from datetime import datetime
+import time
 
 from cpu import Cpu, Memory
 import emulator
@@ -14,10 +15,13 @@ def main():
 
     emulator.program_load('tests/battle.mips')
     t_old = datetime.now()
-    for _ in xrange(12500000):
+    emulator.cpu_run(12500000)
+    time.sleep(1)
+    emulator.cpu_stop()
+#    for _ in xrange(12500000):
         # cpu clock : 12.5mHz
 #        cpu.step()
-        emulator.cpu_step()
+#        emulator.cpu_step()
 
 #        robot.update(dt)
     t_current = datetime.now()
