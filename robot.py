@@ -2,11 +2,13 @@
 
 from math import cos, sin, atan, pi
 import emulator
+import pyglet
 
 class Motor():
     """Represents a simple step by step electric motor"""
     MAGNET_STRENGTH = 180
-    WHEEL_PERIMETER=10
+    WHEEL_PERIMETER=1
+
     def __init__(self):
         # Current magnets' state of the motor
         self.magnets = [ {'angle' : i * 90, 'state' : 0} for i in xrange(4) ]
@@ -27,11 +29,21 @@ class Motor():
         for i in xrange(len(self.magnets)):
             self.magnets[i]['state'] = state & (1 << i)
 
-    def update(self):
-        """Update the physical state of the motor"""
+    def synchronise(self, io_byte):
+        """Synchronise the magnets state according to the given IO"""
+        # io_byte store the magnets state with it first 4 bits
+        for i in xrange(len(self.magnets)):
+            self.magnets[i]['state'] = (io_byte >> i) & 0x1
+        # Return the same io given we are only a input
+        return io_byte
+
+    def update(self, dt):
+        """Update the physical state of the motor
+        """
         # Compute strengths the magnets apply on the rotor
         strength = 0
-        for magnet in [ m for m in self.magnets if m['state' == 1] ]:
+        # Only the activated magnets apply force on the rotor
+        for magnet in [ m for m in self.magnets if m['state'] == 1 ]:
             # Retreive the angle distance between the magnet an the rotor
             dangle = magnet['angle'] - self.rotor_angle
             if dangle > 180:
@@ -42,13 +54,18 @@ class Motor():
             else:
                 strength += (1 / dangle) * self.MAGNET_STRENGTH
         # To cut simple, we consider this strength is an angular speed
-        # Then we can update the linear speed
+        # Then we can update the rotor position and the linear speed
+        self.rotor_angle += strength * dt
         self.linear_speed = strength * self.WHEEL_PERIMETER
 
 class Robot():
+    """Physical representation of the robot"""
+    image = pyglet.image.load("ressources/car.png")
+    sprite = pyglet.sprite.Sprite(image)
     WIDTH = 10
     LENGTH = 10
-    def __init__(self):
+    def __init__(self, memory):
+        self.memory = memory
         # Physical position
         self.x = 0
         self.y = 0
@@ -58,18 +75,19 @@ class Robot():
         self.motorL = Motor()
 
         # Connect the modules' IOs in memory
-        self.memory.bind(address='0x10', bitmask=0x0000FF00,
-                        getter=lambda : self.motorL.getter() << 16,
-                        setter=lambda val: self.motorL.setter(val >> 16))
-        self.memory.bind(address='0x10', bitmask=0x000000FF,
-                        getter=self.motorR.getter,
-                        setter=self.motorR.setter)
+        self.memory.bind(address=0x10, bitmask=0xF0,
+            callback=lambda x: self.motorL.synchronise((x>>4)) << 4)
+        self.memory.bind(address=0x10, bitmask=0x0F,
+            callback=self.motorR.synchronise)
 
     def update(self, dt):
         """Update the motor physical state"""
+        # First, synchronise with the real memory
+        self.memory.synchronise()
+
         # Update the modules
-        self.motorR.update()
-        self.motorL.update()
+        self.motorR.update(dt)
+        self.motorL.update(dt)
 
         # Get the total speed from motors' one
         # The two motors have different speed,
@@ -85,14 +103,11 @@ class Robot():
 
         # Update the robot position
         # TODO : check colisions
-        self.x = straight * cos(self.angle * pi / 180) * dt
-        self.y = -straight * sin(self.angle * pi / 180) * dt
-        self.angle = atan(turn / self.WIDTH) * dt
+        self.sprite.x += straight * cos(self.angle * pi / 180) * dt
+        self.sprite.y += -straight * sin(self.angle * pi / 180) * dt
+        self.sprite.rotation += atan(turn / self.WIDTH) * dt
 
-        print "x : {}, y : {}, angle : {}".format(self.x, self.y, self.angle)
+    def draw(self):
+        """Display on screen the robot"""
+        self.sprite.draw()
 
-
-if __name__ == '__main__':
-    robot = Robot()
-    emulator.program_load("tests/battle.mips")
-    emulator.cpu_run(12500000)

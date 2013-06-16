@@ -2,6 +2,9 @@
 
 import struct
 import numpy
+import threading
+from datetime import datetime
+import time
 
 DEFAULT_MEMORY_SIZE = 1024 * 1024
 DEFAULT_MEMORY_BASE_ADDRESS = 0x0
@@ -16,14 +19,19 @@ class Memory():
     """
     def __init__(self, base_address=DEFAULT_MEMORY_BASE_ADDRESS, size=DEFAULT_MEMORY_SIZE):
         # Create the requested memory area
-        self.mem = numpy.array([0x00000000 for _ in xrange(size)], numpy.uint8)
+        if size % 4 != 0:
+            raise Exception("Memory size must be 4 bytes alligned")
+        self.mem_byte = numpy.array([numpy.byte(0x00) for _ in xrange(size)])
+        self.mem_uint32 = self.mem_byte.view(numpy.uint32)
         self.base_address = base_address
         self.upper_end = size + base_address
+        self.bindings = []
 
     def __getitem__(self, address):
         # Check if the address is not out of bound
         if self.base_address <= address < self.upper_end:
-            return self.mem[address - self.base_address]
+            index = (address - self.base_address) >> 2
+            return self.mem_uint32[index]
         else:
             # Memory out of bound, return default 0ed memory
             return 0x00000000
@@ -31,16 +39,41 @@ class Memory():
     def __setitem__(self, address, item):
         # If address is out of bound, nothing to do
         if self.base_address <= address < self.upper_end:
-            struct.pack_into('i', self.mem, address - self.base_address, item)
+            index = (address - self.base_address) >> 2
+            self.mem_uint32[index] = item
+
+    def bind(self, address, bitmask=0xFF, callback=None):
+        """Connect a memory region to a callback.
+           This typically used handle IO
+           bitmask : bits of interest
+           callback(byte) ==> byte will receive the byte present in memory address
+           and must return another byte which will be stored at this address
+        """
+        self.bindings.append({ 'address' : address, 'bitmask' : bitmask, 'callback' : callback })
+
+    def synchronise(self):
+        """Execute the bindings to update their value to the real one stored in memory"""
+        for b in self.bindings:
+            # Make sure address is not outside memory bounds
+            if self.base_address <= b['address'] < self.upper_end:
+                # Convert the address into the index in the memory array
+                index = (b['address'] - self.base_address)
+                bitmask = b['bitmask']
+                new_value = b['callback'](self.mem_byte[index] & bitmask)
+                self.mem_byte[index] &= ~bitmask
+                self.mem_byte[index] |= new_value & bitmask
+                
+
+            else:
+                b['callback'](0x00)
 
 class Cpu():
     """MIPS-1 emulator"""
-    def __init__(self, memory=None, freqency=DEFAULT_FREQUENCY):
-        self.clock = 0
+    def __init__(self, memory=None, frequency=DEFAULT_FREQUENCY):
         # PC is 4 bytes alligned, then we use instead a fake_pc divided by 4
         self.fake_pc = 0
         # MIPS has 31 general-purpose registers plus r0 (always 0 register)
-        self.r = numpy.array([0x00000000 for _ in xrange(32)], numpy.uint32)
+        self.r = [numpy.uint32(0x00000000) for _ in xrange(32)]
         # If no memory was given, it's time to create one
         if memory is None:
             self.memory = Memory()
@@ -49,6 +82,10 @@ class Cpu():
         # No program loaded so far
         self.program_size = 0
         self.program = None
+        # stuff to make the cpu run in continuous
+        self.thread = threading.Thread(None, self.__run)
+        self.timeslice = 1 / frequency
+        self.running = 0
 
         self.OPCODES_I = {
         0x04 : self.__execute_I_BEQ,
@@ -83,53 +120,67 @@ class Cpu():
                     '(size : {} bytes)'.format(path, len(data)))
             # Now copy the raw bytes into an array of MIPS instructions
             self.program_size = len(data) / 4
-            self.program = numpy.array([ struct.unpack("i", data[i * 4 : i * 4 + 4]) for i in xrange(self.program_size)], numpy.uint32)
+            self.program = [ struct.unpack_from("i", data, i * 4)[0] for i in xrange(self.program_size)]
+
+    def __run(self):
+        while self.running:
+            t1 = datetime.now()
+            self.step()
+            dt = (datetime.now() - t1).total_seconds()
+            if dt < self.timeslice:
+                time.sleep(dt)
 
     def run(self):
         """Make the CPU run in continuous until self.stop() is called"""
+        self.running = 1
+        self.thread.start()
 
     def stop(self):
         """Stop the CPU execution"""
+        self.running = 0
+        self.thread.join()
 
     def step(self):
         """Run the CPU one step further (i.e. execute the next instruction)"""
-        self.clock += 1
         # If no program is loaded of if we are out of it boounds,
         # we have nothing much to do...
         if self.program is None or self.fake_pc >= self.program_size:
             self.fake_pc += 1
             return
         # Otherwise, it's time to execute the next instruction
-        instruction = int(self.program[self.fake_pc])
+        instruction = self.program[self.fake_pc]
 
         # Get the instruction type (R, I or J) from the opcode and execute it
         opcode = (instruction >> 26) & 0x3F
         if opcode == 0:
             # R instruction
-            rs = (instruction >> 21) & 0x1F
-            rt = (instruction >> 16) & 0x1F
-            rd = (instruction >> 11) & 0x1F
-            shamt = (instruction >> 6) & 0x1F
-            funct = instruction & 0x3F
+            rs = numpy.ubyte((instruction >> 21) & 0x1F)
+            rt = numpy.ubyte((instruction >> 16) & 0x1F)
+            rd = numpy.ubyte((instruction >> 11) & 0x1F)
+            shamt = numpy.ubyte((instruction >> 6) & 0x1F)
+            funct = numpy.int16(instruction & 0x3F)
             # r[rd] must always be 0, nothing to do if it's the destination register
             if rd != 0:
                 self.__execute_R(rs, rt, rd, shamt, funct)
+            # Finally update the program counter
+            self.fake_pc += 1
 
         elif opcode in self.OPCODES_I:
-            rs = (instruction >> 21) & 0x1F
-            rt = (instruction >> 16) & 0x1F
-            immed = instruction & 0xFFFF
+            rs = numpy.ubyte((instruction >> 21) & 0x1F)
+            rt = numpy.ubyte((instruction >> 16) & 0x1F)
+            immed = numpy.int16(instruction & 0xFFFF)
             self.OPCODES_I[opcode](rs, rt, immed)
+            # Finally update the program counter
+            self.fake_pc += 1
 
         elif opcode in self.OPCODES_J:
-            addr = instruction & 0x03FFFFFF
+            addr = numpy.int32(instruction & 0x03FFFFFF)
             self.OPCODES_J[opcode](addr)
+            # No need to update the program counter in a jump
 
         else:
             raise TypeError('Address {} : bad opcode'.format(hex(self.fake_pc * 4)))
 
-        # Finally update the program counter
-        self.fake_pc += 1
 
     # Functions to execute MIPS instructions
 
@@ -156,7 +207,7 @@ class Cpu():
 
     def __execute_I_BEQ(self, rs, rt, immed):
         # Branch is only on equal
-        if rs != rt:
+        if self.r[rs] != self.r[rt]:
             return
         if immed & 1 << 15 == 1:
             self.fake_pc = 0x3FFF << 16 | immed

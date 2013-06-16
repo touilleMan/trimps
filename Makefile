@@ -8,7 +8,7 @@ TARGET=emulator.so
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	@$(CC) -shared $^ -o $@ -lpthread
+	$(CC) -shared $^ -o $@ -lpthread
 
 %.o:%.c
 	$(CC) -o $@ -c $< $(CFLAGS) $(INCLUDE)
