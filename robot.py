@@ -60,19 +60,13 @@ class Motor():
 
 class Robot():
     """Physical representation of the robot"""
-    image = pyglet.image.load("ressources/car.png")
-    sprite = pyglet.sprite.Sprite(image)
-    WIDTH = 10
-    LENGTH = 10
+    IMAGE = pyglet.image.load("ressources/car.png")
     def __init__(self, memory):
         self.memory = memory
-        # Physical position
-        self.x = 0
-        self.y = 0
-        self.angle = 0
         # Modules
         self.motorR = Motor()
         self.motorL = Motor()
+        self.sprite = pyglet.sprite.Sprite(self.IMAGE)
 
         # Connect the modules' IOs in memory
         self.memory.bind(address=0x10, bitmask=0xF0,
@@ -103,9 +97,9 @@ class Robot():
 
         # Update the robot position
         # TODO : check colisions
-        self.sprite.x += straight * cos(self.angle * pi / 180) * dt
-        self.sprite.y += -straight * sin(self.angle * pi / 180) * dt
-        self.sprite.rotation += atan(turn / self.WIDTH) * dt
+        self.sprite.x += straight * cos(self.sprite.rotation * pi / 180) * dt
+        self.sprite.y += -straight * sin(self.sprite.rotation * pi / 180) * dt
+        self.sprite.rotation += atan(turn / self.sprite.width) * dt
 
     def draw(self):
         """Display on screen the robot"""

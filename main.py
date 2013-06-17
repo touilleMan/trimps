@@ -8,31 +8,33 @@ from emulator import Cpu, Memory
 from robot import Robot
 from world import World
 
-def main():
+# 12.5MHz CPU
+CPU_FREQ = 12500000
+# Synchronise rate 1000Hz
+SYNCHRONISE_FREQ=1000
+SYNCHONISE_STEP = 1.0 / SYNCHRONISE_FREQ
+CPU_SAMPLE = int(CPU_FREQ / SYNCHRONISE_FREQ)
 
-    t_init = datetime.now()
 
-    for _ in xrange(100000):
-        t_old = datetime.now()
-        for _ in xrange(125):
-            # cpu clock : 12.5mHz
-            cpu.step(1000)
-        t_current = datetime.now()
-        robot.update((t_current - t_old).total_seconds())
+class Program:
+    def update(self, arg):
+        # Make the CPU run the number of instructions between two synchronisations
+        self.cpu.step(CPU_SAMPLE)
+        # Now update the robot state
+        self.robot.update(SYNCHONISE_STEP)
 
-    print "should be 1s : " + str(datetime.now() - t_init)
+    def start(self):
+        self.cpu.load('tests/linetracer.mips')
+        pyglet.clock.schedule_interval(self.update, SYNCHONISE_STEP)
+        pyglet.app.run()
+
+    def __init__(self):
+        self.memory = Memory()
+        self.cpu = Cpu(self.memory)
+        self.robot = Robot(self.memory)
+        self.world = World()
+        self.world.add(self.robot)
 
 if __name__ == '__main__':
-    memory = Memory()
-    cpu = Cpu(memory=memory, frequency=12500000)
-    cpu.load('tests/linetracer.mips')
-    robot = Robot(memory)
-
-    world = World()
-    world.add(robot)
-
-    cpu.run()
-    pyglet.clock.schedule_interval(robot.update, 0.01)
-    pyglet.app.run()
-
-    cpu.stop()
+    pg = Program()
+    pg.start()
