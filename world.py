@@ -3,6 +3,7 @@
 import pyglet
 
 class World():
+    """Physical world the robot evoluate in"""
     def __init__(self):
         self.elements = []
         self.window = pyglet.window.Window()

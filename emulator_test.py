@@ -21,7 +21,7 @@ class Test_memory(unittest.TestCase):
         memory = Memory()
 
         fm = self.FakeMem(bind, 0x3)
-        memory.bind(0x3, setter=fm.setter, getter=None)
+        memory.bind(0x3, callback=)
         memory[0x3] = 0x11
         self.assertEqual(memory[0x3], bind[0x3], 'IO bind setter failed')
 

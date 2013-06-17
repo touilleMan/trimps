@@ -16,7 +16,7 @@ def main():
         t_old = datetime.now()
         for _ in xrange(125):
             # cpu clock : 12.5mHz
-            cpu.step()
+            cpu.step(1000)
         t_current = datetime.now()
         robot.update((t_current - t_old).total_seconds())
 
@@ -30,6 +30,7 @@ if __name__ == '__main__':
 
     world = World()
     world.add(robot)
+
     cpu.run()
     pyglet.clock.schedule_interval(robot.update, 0.01)
     pyglet.app.run()

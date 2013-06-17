@@ -6,18 +6,18 @@ import threading
 from datetime import datetime
 import time
 
-DEFAULT_MEMORY_SIZE = 1024 * 1024
-DEFAULT_MEMORY_BASE_ADDRESS = 0x0
 DEFAULT_START_ADDRESS = 0x0
 # 12.5 MHz CPU
-DEFAULT_FREQUENCY = 12.5 * 1024 * 1024
+DEFAULT_FREQUENCY = 12500000
+DEFAULT_MEMORY_SIZE = 1024 * 1024
+DEFAULT_MEMORY_BASE_ADDRESS = 0x0
 
 class Memory():
     """Representation of the virtual memory
        physical RAM and I/O (through bindings on callbacks)
        are stored here
     """
-    def __init__(self, base_address=DEFAULT_MEMORY_BASE_ADDRESS, size=DEFAULT_MEMORY_SIZE):
+    def __init__(self, size=DEFAULT_MEMORY_SIZE, base_address=DEFAULT_MEMORY_BASE_ADDRESS):
         # Create the requested memory area
         if size % 4 != 0:
             raise Exception("Memory size must be 4 bytes alligned")
@@ -62,13 +62,13 @@ class Memory():
                 new_value = b['callback'](self.mem_byte[index] & bitmask)
                 self.mem_byte[index] &= ~bitmask
                 self.mem_byte[index] |= new_value & bitmask
-                
-
             else:
+                # Call with dummy stuff if we are outside
                 b['callback'](0x00)
 
+
 class Cpu():
-    """MIPS-1 emulator"""
+    """MIPS-1 CPU"""
     def __init__(self, memory=None, frequency=DEFAULT_FREQUENCY):
         # PC is 4 bytes alligned, then we use instead a fake_pc divided by 4
         self.fake_pc = 0
@@ -104,7 +104,7 @@ class Cpu():
         string = 'Dump cpu registers :\n'
         string += 'pc : {}\n'.format(self.fake_pc * 4)
         for i in xrange(len(self.r)):
-            string += '\tr{d} : 0b{0:32b}\n'.format(i, self.r[i])
+            string += '\tr{} : 0b{}\n'.format(i, bin(self.r[i]))
         return string
 
     def load(self, path, start_address=DEFAULT_START_ADDRESS):
@@ -140,10 +140,14 @@ class Cpu():
         self.running = 0
         self.thread.join()
 
-    def step(self):
-        """Run the CPU one step further (i.e. execute the next instruction)"""
-        # If no program is loaded of if we are out of it boounds,
-        # we have nothing much to do...
+    def step(self, count=1):
+        """Run the CPU count times (i.e. execute the count next instructions)"""
+        for i in xrange(count):
+            self.__step()
+
+    def __step(self):
+        # If no program is loaded or if pc is out of it bounds,
+        # the cpu has no instruction to compute
         if self.program is None or self.fake_pc >= self.program_size:
             self.fake_pc += 1
             return
