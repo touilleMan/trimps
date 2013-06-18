@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 
 import struct
-import numpy
 import threading
 from datetime import datetime
 import time
@@ -21,8 +20,7 @@ class Memory():
         # Create the requested memory area
         if size % 4 != 0:
             raise Exception("Memory size must be 4 bytes alligned")
-        self.mem_byte = numpy.array([numpy.byte(0x00) for _ in xrange(size)])
-        self.mem_uint32 = self.mem_byte.view(numpy.uint32)
+        self.mem_uint32 = [0x00 for _ in xrange(size/4)]
         self.base_address = base_address
         self.upper_end = size + base_address
         self.bindings = []
@@ -59,9 +57,9 @@ class Memory():
                 # Convert the address into the index in the memory array
                 index = (b['address'] - self.base_address)
                 bitmask = b['bitmask']
-                new_value = b['callback'](self.mem_byte[index] & bitmask)
-                self.mem_byte[index] &= ~bitmask
-                self.mem_byte[index] |= new_value & bitmask
+                new_value = b['callback']((self.mem_uint32[index] >> 24) & bitmask)
+                (self.mem_uint32[index] >> 24) &= ~bitmask
+                (self.mem_uint32[index] >> 24) |= new_value & bitmask
             else:
                 # Call with dummy stuff if we are outside
                 b['callback'](0x00)
@@ -73,7 +71,7 @@ class Cpu():
         # PC is 4 bytes alligned, then we use instead a fake_pc divided by 4
         self.fake_pc = 0
         # MIPS has 31 general-purpose registers plus r0 (always 0 register)
-        self.r = [numpy.uint32(0x00000000) for _ in xrange(32)]
+        self.r = [0x00000000 for _ in xrange(32)]
         # If no memory was given, it's time to create one
         if memory is None:
             self.memory = Memory()
@@ -158,11 +156,11 @@ class Cpu():
         opcode = (instruction >> 26) & 0x3F
         if opcode == 0:
             # R instruction
-            rs = numpy.ubyte((instruction >> 21) & 0x1F)
-            rt = numpy.ubyte((instruction >> 16) & 0x1F)
-            rd = numpy.ubyte((instruction >> 11) & 0x1F)
-            shamt = numpy.ubyte((instruction >> 6) & 0x1F)
-            funct = numpy.int16(instruction & 0x3F)
+            rs = (instruction >> 21) & 0x1F
+            rt = (instruction >> 16) & 0x1F
+            rd = (instruction >> 11) & 0x1F
+            shamt = (instruction >> 6) & 0x1F
+            funct = instruction & 0x3F
             # r[rd] must always be 0, nothing to do if it's the destination register
             if rd != 0:
                 self.__execute_R(rs, rt, rd, shamt, funct)
@@ -170,15 +168,15 @@ class Cpu():
             self.fake_pc += 1
 
         elif opcode in self.OPCODES_I:
-            rs = numpy.ubyte((instruction >> 21) & 0x1F)
-            rt = numpy.ubyte((instruction >> 16) & 0x1F)
-            immed = numpy.int16(instruction & 0xFFFF)
+            rs = (instruction >> 21) & 0x1F
+            rt = (instruction >> 16) & 0x1F
+            immed = instruction & 0xFFFF
             self.OPCODES_I[opcode](rs, rt, immed)
             # Finally update the program counter
             self.fake_pc += 1
 
         elif opcode in self.OPCODES_J:
-            addr = numpy.int32(instruction & 0x03FFFFFF)
+            addr = instruction & 0x03FFFFFF
             self.OPCODES_J[opcode](addr)
             # No need to update the program counter in a jump
 
