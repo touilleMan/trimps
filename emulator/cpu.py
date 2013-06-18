@@ -1,13 +1,8 @@
 #! /usr/bin/env python
 
 import struct
-import threading
-from datetime import datetime
-import time
 
 DEFAULT_START_ADDRESS = 0x0
-# 12.5 MHz CPU
-DEFAULT_FREQUENCY = 12500000
 DEFAULT_MEMORY_SIZE = 1024 * 1024
 DEFAULT_MEMORY_BASE_ADDRESS = 0x0
 
@@ -67,7 +62,7 @@ class Memory():
 
 class Cpu():
     """MIPS-1 CPU"""
-    def __init__(self, memory=None, frequency=DEFAULT_FREQUENCY):
+    def __init__(self, memory=None):
         # PC is 4 bytes alligned, then we use instead a fake_pc divided by 4
         self.fake_pc = 0
         # MIPS has 31 general-purpose registers plus r0 (always 0 register)
@@ -80,10 +75,6 @@ class Cpu():
         # No program loaded so far
         self.program_size = 0
         self.program = None
-        # stuff to make the cpu run in continuous
-        self.thread = threading.Thread(None, self.__run)
-        self.timeslice = 1 / frequency
-        self.running = 0
 
         self.OPCODES_I = {
         0x04 : self.__execute_I_BEQ,
@@ -120,27 +111,9 @@ class Cpu():
             self.program_size = len(data) / 4
             self.program = [ struct.unpack_from("i", data, i * 4)[0] for i in xrange(self.program_size)]
 
-    def __run(self):
-        while self.running:
-            t1 = datetime.now()
-            self.step()
-            dt = (datetime.now() - t1).total_seconds()
-            if dt < self.timeslice:
-                time.sleep(dt)
-
-    def run(self):
-        """Make the CPU run in continuous until self.stop() is called"""
-        self.running = 1
-        self.thread.start()
-
-    def stop(self):
-        """Stop the CPU execution"""
-        self.running = 0
-        self.thread.join()
-
     def step(self, count=1):
         """Run the CPU count times (i.e. execute the count next instructions)"""
-        for i in xrange(count):
+        for _ in xrange(count):
             self.__step()
 
     def __step(self):

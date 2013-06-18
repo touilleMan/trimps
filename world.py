@@ -7,6 +7,8 @@ class World():
     def __init__(self):
         self.elements = []
         self.window = pyglet.window.Window()
+        # Set a white background
+        pyglet.gl.glClearColor(1,1,1,0)
 
         @self.window.event
         def on_draw():
