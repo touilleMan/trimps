@@ -23,7 +23,8 @@ if __name__ == '__main__':
 #        sys.stdin.readline()
 #        cpu.step()
 #        print cpu
-    cProfile.run("cpu.step(count)")
+    cpu.step(count)
+#    cProfile.run("cpu.step(count)")
 
     dt = (datetime.now() - tstart).total_seconds()
     print "Took {}".format(dt)
