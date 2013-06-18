@@ -58,8 +58,8 @@ class Memory():
                 index = (b['address'] - self.base_address)
                 bitmask = b['bitmask']
                 new_value = b['callback']((self.mem_uint32[index] >> 24) & bitmask)
-                (self.mem_uint32[index] >> 24) &= ~bitmask
-                (self.mem_uint32[index] >> 24) |= new_value & bitmask
+                self.mem_uint32[index] &= (~bitmask << 24)
+                self.mem_uint32[index] |= (new_value & bitmask << 24)
             else:
                 # Call with dummy stuff if we are outside
                 b['callback'](0x00)
