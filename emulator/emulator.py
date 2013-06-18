@@ -11,29 +11,57 @@ class Memory():
        physical RAM and I/O (through bindings on callbacks)
        are stored here
     """
-    def __init__(self, size=DEFAULT_MEMORY_SIZE, base_address=DEFAULT_MEMORY_BASE_ADDRESS):
+    def __init__(self, size=DEFAULT_MEMORY_SIZE, ram_base_address=DEFAULT_MEMORY_BASE_ADDRESS):
         # Create the requested memory area
         if size % 4 != 0:
             raise Exception("Memory size must be 4 bytes alligned")
-        self.mem_uint32 = [0x00 for _ in xrange(size/4)]
-        self.base_address = base_address
-        self.upper_end = size + base_address
+        self.ram = [0x00 for _ in xrange(size/4)]
+        self.ram_base_address = ram_base_address
+        self.ram_upper_end = size + ram_base_address
         self.bindings = []
 
-    def __getitem__(self, address):
-        # Check if the address is not out of bound
-        if self.base_address <= address < self.upper_end:
-            index = (address - self.base_address) >> 2
-            return self.mem_uint32[index]
+    def __store_word(self, address, val):
+        if self.ram_base_address <= address and address + 4 < self.ram_upper_end:
+            index = address - self.ram_base_address
+            self.ram[index] = value & 0xF
+            self.ram[index + 1] = (value>>8) & 0xF
+            self.ram[index + 2] = (value>>16) & 0xF
+            self.ram[index + 3] = (value>>24) & 0xF
+
+    def __load_word(self, address):
+        # Make sure the address is not out of bounds
+        if self.ram_base_address <= address and address + 4 < self.ram_upper_end:
+            index = address - self.ram_base_address
+            value = self.ram[index]
+            value |= self.ram[index + 1] << 8
+            value |= self.ram[index + 2] << 16
+            value |= self.ram[index + 3] << 24
+            return value
         else:
-            # Memory out of bound, return default 0ed memory
             return 0x00000000
 
+    def __getitem__(self, address):
+        # Check if the address is part of the RAM
+        if self.ram_base_address <= address < self.ram_upper_end:
+            index = address - self.ram_base_address
+            return self.ram[index]
+        else:
+            # Default data if the memory address is out of bounds
+            value = 0x00000000
+            # Check if the address is among the IO bindings
+            for b in filter(lambda b: b['address'] == address, self.bindings):
+                value |= b['value'] & b['bitmask']
+            return value
+
     def __setitem__(self, address, item):
-        # If address is out of bound, nothing to do
-        if self.base_address <= address < self.upper_end:
-            index = (address - self.base_address) >> 2
-            self.mem_uint32[index] = item
+        # Check if the address is part of the RAM
+        if self.ram_base_address <= address < self.ram_upper_end:
+            index = address - self.ram_base_address
+            self.ram[index] = item
+        else:
+            # Else, check if the address is among the IO bindings
+            for b in filter(lambda b: b['address'] == address, self.bindings):
+                b['value'] = item & b['bitmask']
 
     def bind(self, address, bitmask=0xFF, callback=None):
         """Connect a memory region to a callback.
@@ -42,23 +70,29 @@ class Memory():
            callback(byte) ==> byte will receive the byte present in memory address
            and must return another byte which will be stored at this address
         """
-        self.bindings.append({ 'address' : address, 'bitmask' : bitmask, 'callback' : callback })
+        # If the binding address is part of the RAM, no need to create a 'value' key
+        if self.ram_base_address <= address < self.ram_upper_end:
+            binding = { 'address' : address, 'bitmask' : bitmask, 'callback' : callback }
+        else:
+            # Address outside of the RAM, it value must be stored inside the dictionnary
+            binding = { 'address' : address, 'bitmask' : bitmask, 'callback' : callback , 'value' : 0x00 }
+        self.bindings.append(binding)
 
     def synchronise(self):
-        """Execute the bindings to update their value to the real one stored in memory"""
+        """Update the IO by callings their binding callbacks"""
         for b in self.bindings:
-            # Make sure address is not outside memory bounds
-            if self.base_address <= b['address'] < self.upper_end:
-                # Convert the address into the index in the memory array
-                index = (b['address'] - self.base_address)
-                bitmask = b['bitmask']
-                new_value = b['callback']((self.mem_uint32[index] >> 24) & bitmask)
-                self.mem_uint32[index] &= (~bitmask << 24)
-                self.mem_uint32[index] |= (new_value & bitmask << 24)
+            if b.has_key('value'):
+                # If the binding has it own value, use it
+                b['value'] = b['callback'](b['value']) & b['bitmask']
             else:
-                # Call with dummy stuff if we are outside
-                b['callback'](0x00)
-
+                # Otherwise, the value is stored in the RAM
+                # Convert the address into the index in the memory array
+                index = b['address'] - self.ram_base_address
+                bitmask = b['bitmask']
+                new_value = b['callback'](self.ram[index] & bitmask)
+                if new_value is not None:
+                    self.ram[index] &= ~bitmask
+                    self.ram[index] |= new_value & bitmask
 
 class Cpu():
     """MIPS-1 CPU"""
@@ -114,17 +148,18 @@ class Cpu():
     def step(self, count=1):
         """Run the CPU count times (i.e. execute the count next instructions)"""
         for _ in xrange(count):
-            self.__step()
-
-    def __step(self):
-        # If no program is loaded or if pc is out of it bounds,
-        # the cpu has no instruction to compute
-        if self.program is None or self.fake_pc >= self.program_size:
+            # If no program is loaded or if pc is out of it bounds,
+            # the cpu has no instruction to compute
+            if self.program is None or self.fake_pc >= self.program_size:
+                self.fake_pc += 1
+                return
+            # Otherwise, it's time to fetch and execute the next instruction
+            self.execute(self.program[self.fake_pc])
+            # Finally update the program counter
             self.fake_pc += 1
-            return
-        # Otherwise, it's time to execute the next instruction
-        instruction = self.program[self.fake_pc]
 
+    def execute(self, instruction):
+        """Make the CPU execute the given MIPS instruction"""
         # Get the instruction type (R, I or J) from the opcode and execute it
         opcode = (instruction >> 26) & 0x3F
         if opcode == 0:
@@ -137,8 +172,6 @@ class Cpu():
             # r[rd] must always be 0, nothing to do if it's the destination register
             if rd != 0:
                 self.__execute_R(rs, rt, rd, shamt, funct)
-            # Finally update the program counter
-            self.fake_pc += 1
 
         elif opcode in self.OPCODES_I:
             rs = (instruction >> 21) & 0x1F
@@ -191,10 +224,10 @@ class Cpu():
 
     def __execute_I_LW(self, rs, rt, immed):
         if rt != 0:
-            self.r[rt] = self.memory[self.r[rs] + immed]
+            self.r[rt] = self.memory.__load_word(self.r[rs] + immed, 4)
 
     def __execute_I_SW(self, rs, rt, immed):
-        self.memory[self.r[rs] + immed] = self.r[rt]
+        self.memory.__set_word(self.r[rs] + immed, self.r[rt], 4)
 
     def __execute_I_ANDI(self, rs, rt, immed):
         if rt != 0:
@@ -209,4 +242,4 @@ class Cpu():
             self.r[rt] = self.r[rs] + immed
 
     def __execute_J_JUMP(self, addr):
-        self.fake_pc = (self.fake_pc & (0xF << 26)) + addr
+        self.fake_pc = (self.fake_pc & (0xF << 26)) + (addr) & 0xFFFF

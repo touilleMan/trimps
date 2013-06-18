@@ -27,3 +27,7 @@ clean:
 	rm -f $(OBJ)
 	rm -f $(OBJ_CYTHON)
 	rm -f $(TARGET)
+
+check:
+	python emulator_test.py
+
