@@ -2,14 +2,20 @@ CYTHON=cython
 CC=gcc
 CFLAGS=-W -Wall -fpic -std=gnu99
 INCLUDE=-I /usr/include/python2.7/
-SRC=cpu.py
-OBJ=$(SRC:.py=.o)
-TARGET=cpu.so
 
-all: $(TARGET)
+TARGET=emulator.so
 
-$(TARGET): $(OBJ)
-	$(CC) -shared $^ -o $@
+SRC=cpumodule.c memorymodule.c emulatormodule.c
+OBJ=$(SRC:.c=.o)
+
+SRC_CYTHON=emulator.py
+OBJ_CYTHON=$(SRC_CYTHON:.py=.c)
+
+cmodule: $(OBJ)
+	$(CC) -shared $^ -o $(TARGET)
+
+cython: $(OBJ_CYTHON)
+	$(CC) -shared $^ -o $(TARGET) $(INCLUDE)
 
 %.o:%.c
 	$(CC) -o $@ -c $< $(CFLAGS) $(INCLUDE)
@@ -19,5 +25,5 @@ $(TARGET): $(OBJ)
 
 clean:
 	rm -f $(OBJ)
-	rm -f $(SRC_C)
+	rm -f $(OBJ_CYTHON)
 	rm -f $(TARGET)
