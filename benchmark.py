@@ -19,11 +19,11 @@ if __name__ == '__main__':
     print "Should take 1s on real MIPS CPU"
     tstart = datetime.now()
 
-    while True:
-        sys.stdin.readline()
-        cpu.step()
-        print cpu
-#        cProfile.run("cpu.step(count)")
+#    while True:
+#        sys.stdin.readline()
+#        cpu.step()
+#        print cpu
+    cProfile.run("cpu.step(count)")
 
     dt = (datetime.now() - tstart).total_seconds()
     print "Took {}".format(dt)
