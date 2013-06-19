@@ -26,18 +26,26 @@ class Camera(object):
 
 class World():
     """Physical world the robot evoluate in"""
+    POINT=pyglet.image.create(10, 10,
+        pyglet.image.SolidColorImagePattern((0, 0, 0, 255)))
+    POINT.anchor_x = POINT.width / 2
+    POINT.anchor_y = POINT.height / 2
+
     def __init__(self):
         self.elements = []
         self.window = pyglet.window.Window()
         # Set a white background
         pyglet.gl.glClearColor(1,1,1,0)
+        pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
+        self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern).get_texture()
         self.camera = Camera(self.window)
         self.robot = None
 
         @self.window.event
         def on_draw():
             self.window.clear()
-            self.camera.hudProjection()
+            self.tracer.blit(0, 0)
+#            self.camera.hudProjection()
             for e in self.elements:
                 e.draw()
 
@@ -54,12 +62,16 @@ class World():
             if button == pyglet.window.mouse.RIGHT:
                 self.robot.sprite.x = x
                 self.robot.sprite.y = y
+            elif button == pyglet.window.mouse.LEFT:
+                self.tracer.blit_into(self.POINT, x, y, 0)
 
         @self.window.event
         def on_mouse_drag(x, y, dx, dy, button, modifiers):
             if button == pyglet.window.mouse.RIGHT:
                 self.robot.sprite.x = x
                 self.robot.sprite.y = y
+            elif button == pyglet.window.mouse.LEFT:
+                self.tracer.blit_into(self.POINT, x, y, 0)
 
 
     def add(self, elm):
