@@ -15,7 +15,7 @@ cmodule: $(OBJ)
 	$(CC) -shared $^ -o $(TARGET)
 
 cython: $(OBJ_CYTHON)
-	$(CC) -shared $^ -o $(TARGET) $(INCLUDE)
+	$(CC) -shared $^ -o $(TARGET) $(INCLUDE) -fPIC
 
 %.o:%.c
 	$(CC) -o $@ -c $< $(CFLAGS) $(INCLUDE)

@@ -61,12 +61,15 @@ class Motor():
 class Robot():
     """Physical representation of the robot"""
     IMAGE = pyglet.image.load("ressources/car.png")
-    def __init__(self, memory):
+    IMAGE.anchor_x = IMAGE.width / 2
+    IMAGE.anchor_y = IMAGE.height / 2
+
+    def __init__(self, memory, x=50, y=50):
         self.memory = memory
         # Modules
         self.motorR = Motor()
         self.motorL = Motor()
-        self.sprite = pyglet.sprite.Sprite(self.IMAGE)
+        self.sprite = pyglet.sprite.Sprite(self.IMAGE, x, y)
 
         # Connect the modules' IOs in memory
         self.memory.bind(address=0x10, bitmask=0xF0,

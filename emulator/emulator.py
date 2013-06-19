@@ -20,7 +20,7 @@ class Memory():
         self.ram_upper_end = size + ram_base_address
         self.bindings = []
 
-    def __store_word(self, address, val):
+    def set_word(self, address, value):
         if self.ram_base_address <= address and address + 4 < self.ram_upper_end:
             index = address - self.ram_base_address
             self.ram[index] = value & 0xF
@@ -28,7 +28,7 @@ class Memory():
             self.ram[index + 2] = (value>>16) & 0xF
             self.ram[index + 3] = (value>>24) & 0xF
 
-    def __load_word(self, address):
+    def get_word(self, address):
         # Make sure the address is not out of bounds
         if self.ram_base_address <= address and address + 4 < self.ram_upper_end:
             index = address - self.ram_base_address
@@ -224,10 +224,10 @@ class Cpu():
 
     def __execute_I_LW(self, rs, rt, immed):
         if rt != 0:
-            self.r[rt] = self.memory.__load_word(self.r[rs] + immed, 4)
+            self.r[rt] = self.memory.get_word(self.r[rs] + immed)
 
     def __execute_I_SW(self, rs, rt, immed):
-        self.memory.__set_word(self.r[rs] + immed, self.r[rt], 4)
+        self.memory.set_word(self.r[rs] + immed, self.r[rt])
 
     def __execute_I_ANDI(self, rs, rt, immed):
         if rt != 0:
