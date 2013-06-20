@@ -35,6 +35,8 @@ class Program:
         self.world = World()
         self.world.add(self.robot)
         self.world.robot = self.robot
+
+
 if __name__ == '__main__':
     pg = Program()
     pg.start()

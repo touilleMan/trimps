@@ -16,19 +16,6 @@ class Motor():
         self.rotor_angle = 0
         self.linear_speed = 0
 
-    def getter(self):
-        """Returns the state of the motor's magnets"""
-        state = 0x0
-        for i in xrange(len(self.magnets)):
-            state |= self.magnets[i]['state'] << i
-        return state
-
-    def setter(self, state):
-        """Set the motor's magnets"""
-        # Copy the given magnets' state
-        for i in xrange(len(self.magnets)):
-            self.magnets[i]['state'] = state & (1 << i)
-
     def synchronise(self, io_byte):
         """Synchronise the magnets state according to the given IO"""
         # io_byte store the magnets state with it first 4 bits
@@ -69,6 +56,8 @@ class Robot():
         # Modules
         self.motorR = Motor()
         self.motorL = Motor()
+        self.labelR = pyglet.text.Label('Right speed : 0', x= 10, y=30, color=(0, 0, 0, 255))
+        self.labelL = pyglet.text.Label('Left speed : 0', x= 10, y=50, color=(0, 0, 0, 255))
         self.sprite = pyglet.sprite.Sprite(self.IMAGE, x, y)
 
         # Connect the modules' IOs in memory
@@ -103,8 +92,11 @@ class Robot():
         self.sprite.x += straight * cos(self.sprite.rotation * pi / 180) * dt
         self.sprite.y += -straight * sin(self.sprite.rotation * pi / 180) * dt
         self.sprite.rotation += atan(turn / self.sprite.width) * dt
+        self.labelR.text = 'Right speed : {}'.format(self.motorR.linear_speed)
+        self.labelL.text = 'Left speed : {}'.format(self.motorL.linear_speed)
 
     def draw(self):
         """Display on screen the robot"""
         self.sprite.draw()
-
+        self.labelR.draw()
+        self.labelL.draw()

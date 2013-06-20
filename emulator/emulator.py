@@ -21,6 +21,7 @@ class Memory():
         self.bindings = []
 
     def set_word(self, address, value):
+        print "set : {} = {}".format(hex(address), bin(value))
         if self.ram_base_address <= address and address + 4 < self.ram_upper_end:
             index = address - self.ram_base_address
             self.ram[index] = value & 0xF
@@ -49,7 +50,7 @@ class Memory():
             # Default data if the memory address is out of bounds
             value = 0x00000000
             # Check if the address is among the IO bindings
-            for b in filter(lambda b: b['address'] == address, self.bindings):
+            for b in [b for b in self.bindings if b['address'] == address]:
                 value |= b['value'] & b['bitmask']
             return value
 
@@ -60,7 +61,7 @@ class Memory():
             self.ram[index] = item
         else:
             # Else, check if the address is among the IO bindings
-            for b in filter(lambda b: b['address'] == address, self.bindings):
+            for b in [b for b in self.bindings if b['address'] == address]:
                 b['value'] = item & b['bitmask']
 
     def bind(self, address, bitmask=0xFF, callback=None):
@@ -152,7 +153,7 @@ class Cpu():
             # the cpu has no instruction to compute
             if self.program is None or self.fake_pc >= self.program_size:
                 self.fake_pc += 1
-                return
+                continue
             # Otherwise, it's time to fetch and execute the next instruction
             self.execute(self.program[self.fake_pc])
             # Finally update the program counter
@@ -178,8 +179,6 @@ class Cpu():
             rt = (instruction >> 16) & 0x1F
             immed = instruction & 0xFFFF
             self.OPCODES_I[opcode](rs, rt, immed)
-            # Finally update the program counter
-            self.fake_pc += 1
 
         elif opcode in self.OPCODES_J:
             addr = instruction & 0x03FFFFFF
