@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 
 import struct
+#import numpypy
+import numpy
 
 DEFAULT_START_ADDRESS = 0x0
 DEFAULT_MEMORY_SIZE = 1024 * 1024
@@ -20,14 +22,14 @@ class Memory():
         self.ram_upper_end = size + ram_base_address
         self.bindings = []
 
-    def set_word(self, address, value):
-        print "set : {} = {}".format(hex(address), bin(value))
+    def set_word(self, address, item):
+        print "set : {} = {}".format(hex(address), bin(item))
         if self.ram_base_address <= address and address + 4 < self.ram_upper_end:
             index = address - self.ram_base_address
-            self.ram[index] = value & 0xF
-            self.ram[index + 1] = (value>>8) & 0xF
-            self.ram[index + 2] = (value>>16) & 0xF
-            self.ram[index + 3] = (value>>24) & 0xF
+            self.ram[index] = item & 0xF
+            self.ram[index + 1] = (item>>8) & 0xF
+            self.ram[index + 2] = (item>>16) & 0xF
+            self.ram[index + 3] = (item>>24) & 0xF
 
     def get_word(self, address):
         # Make sure the address is not out of bounds
@@ -101,7 +103,7 @@ class Cpu():
         # PC is 4 bytes alligned, then we use instead a fake_pc divided by 4
         self.fake_pc = 0
         # MIPS has 31 general-purpose registers plus r0 (always 0 register)
-        self.r = [0x00000000 for _ in xrange(32)]
+        self.r = [numpy.int32(0) for _ in xrange(32)]
         # If no memory was given, it's time to create one
         if memory is None:
             self.memory = Memory()
@@ -156,8 +158,6 @@ class Cpu():
                 continue
             # Otherwise, it's time to fetch and execute the next instruction
             self.execute(self.program[self.fake_pc])
-            # Finally update the program counter
-            self.fake_pc += 1
 
     def execute(self, instruction):
         """Make the CPU execute the given MIPS instruction"""
@@ -173,12 +173,16 @@ class Cpu():
             # r[rd] must always be 0, nothing to do if it's the destination register
             if rd != 0:
                 self.__execute_R(rs, rt, rd, shamt, funct)
+            # Finally update the program counter
+            self.fake_pc += 1
 
         elif opcode in self.OPCODES_I:
             rs = (instruction >> 21) & 0x1F
             rt = (instruction >> 16) & 0x1F
             immed = instruction & 0xFFFF
             self.OPCODES_I[opcode](rs, rt, immed)
+            # Finally update the program counter
+            self.fake_pc += 1
 
         elif opcode in self.OPCODES_J:
             addr = instruction & 0x03FFFFFF
@@ -200,13 +204,13 @@ class Cpu():
         elif funct == 0x27:  # XOR
             self.r[rd] = self.r[rs] ^ self.r[rt]
         elif funct == 0x20:  # ADD
-            self.r[rd] = self.r[rs] + self.r[rt]
+            self.r[rd] = (self.r[rs] + self.r[rt]) & 0xFFFFFFFF
         elif funct == 0x22:  # SUB
-            self.r[rd] = self.r[rs] - self.r[rt]
+            self.r[rd] = (self.r[rs] - self.r[rt]) & 0xFFFFFFFF
         elif funct == 0x00:  # SLL
-            self.r[rd] = self.r[rt] << shamt
+            self.r[rd] = (self.r[rt] << shamt) & 0xFFFFFFFF
         elif funct == 0x02:  # SRL
-            self.r[rd] = self.r[rt] >> shamt
+            self.r[rd] = (self.r[rt] >> shamt) & 0xFFFFFFFF
         elif funct == 0x2a:  # SLT
             self.r[rd] = self.r[rs] < self.r[rt]
         else:
@@ -214,6 +218,8 @@ class Cpu():
 
     def __execute_I_BEQ(self, rs, rt, immed):
         # Branch is only on equal
+
+        print "{} {}".format(self.r[rs], self.r[rt])
         if self.r[rs] != self.r[rt]:
             return
         if immed & 1 << 15 == 1:
@@ -241,4 +247,4 @@ class Cpu():
             self.r[rt] = self.r[rs] + immed
 
     def __execute_J_JUMP(self, addr):
-        self.fake_pc = (self.fake_pc & (0xF << 26)) + (addr) & 0xFFFF
+        self.fake_pc = (self.fake_pc & (0x3F << 26)) | addr

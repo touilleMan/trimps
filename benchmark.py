@@ -12,7 +12,8 @@ if __name__ == '__main__':
     count = DEFAULT_FREQUENCY
     datetime.now()
     cpu = Cpu()
-    cpu.load("tests/battle.mips")
+#    cpu.load("tests/battle.mips")
+    cpu.load("tests/linetracer.mips")
 
     print "\t*** BENCHMARK ***"
     print "Executing {} instructions @ {}MHz".format(count, float(count) / 1000000)

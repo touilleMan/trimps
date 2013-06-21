@@ -5,7 +5,8 @@ INCLUDE=-I /usr/include/python2.7/
 
 TARGET=emulator.so
 
-SRC=cpumodule.c memorymodule.c emulatormodule.c
+#SRC=cpumodule.c memorymodule.c emulatormodule.c
+SRC=memorymodule.c
 OBJ=$(SRC:.c=.o)
 
 SRC_CYTHON=emulator.py

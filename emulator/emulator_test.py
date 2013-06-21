@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+7#! /usr/bin/env python
 
 import unittest
 from emulator import Cpu, Memory
@@ -166,8 +166,23 @@ class Test__Cpu__execute_J(unittest.TestCase):
 
         cpu._Cpu__execute_J_JUMP(-0x44)
         # Must make and overflow on the uint32_t pc
-        self.assertEqual(cpu.fake_pc, (-0x44) & 0xFFFF, 'JUMP -0x44 failed')
+        self.assertEqual(cpu.fake_pc, 0xFFFFFFFF - 0x44, 'JUMP -0x44 failed')
         cpu._Cpu__execute_J_JUMP(0x4)
+
+
+class Test__Cpu__registers(unittest.TestCase):
+
+    def testIncrease(self):
+        cpu = Cpu()
+	for _ in xrange(0x100000):
+            cpu._Cpu__execute_I_ADDI(1, 1, 0x1000)
+        self.assertEqual(cpu.r[1], 0x0, 'Register stored value is bigger than 32bits ! ({})'.format(hex(cpu.r[1])))
+
+    def testDecrease(self):
+        cpu = Cpu()
+	for _ in xrange(0x100000):
+            cpu._Cpu__execute_I_ADDI(1, 1, -0x1000)
+        self.assertEqual(cpu.r[1], 0x0, 'Register stored value is bigger than 32bits ! ({})'.format(hex(cpu.r[1])))
 
 
 if __name__ == '__main__':
