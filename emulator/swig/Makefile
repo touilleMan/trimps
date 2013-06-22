@@ -5,7 +5,7 @@ SWIGFLAGS=-c++ -python
 INCLUDE=-I /usr/include/python2.7/
 TARGET=_emulator.so
 
-SRC=memory.cpp
+SRC=cpu.cpp memory.cpp
 OBJ=$(SRC:.cpp=.o)
 SWIG_SRC=emulator.i
 SWIG_OBJ=$(SWIG_SRC:.i=_wrap.cxx)

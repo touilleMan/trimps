@@ -1,28 +1,84 @@
 #include "memory.hpp"
 
-#include <cstdlib>
-
-Memory::Memory(const uint32_t size)
-	: memory_size_(size)
+Memory::Memory(const unsigned size, const unsigned base_address)
+	: memory_size(size), base_address(base_address)
 {
-	this->a_memory_ = (uint32_t *)calloc(size, sizeof(uint32_t));
+	this->_a_memory = (char *)calloc(size, sizeof(char));
 }
 
 Memory::~Memory(void)
 {
-
+	free(this->_a_memory);
 }
 
-uint32_t Memory::__getitem__(const uint32_t address)
+int Memory::__getitem__(const unsigned address)
 {
-	if (address < this->memory_size_)
-		return this->a_memory_[address];
-	else
-		return 0;
+	return (int)get_ubyte(address);
 }
 
-void Memory::__setitem__(const uint32_t address, const uint32_t item)
+void Memory::__setitem__(const unsigned address, const int item)
 {
-	if (address < this->memory_size_)
-		this->a_memory_[address] = item;
+	set_byte(address, item);
+}
+
+unsigned int Memory::get_ubyte(const unsigned address)
+{
+	return this->get_sbyte(address) & 0xFF;
+}
+
+unsigned int Memory::get_uword(const unsigned address)
+{
+	return (unsigned int)this->get_sword(address);
+}
+
+int Memory::get_sbyte(const unsigned address)
+{
+	this->_mutex.lock();
+
+	int item = 0;
+	if (this->base_address <= address &&
+		address < this->memory_size) {
+		item = this->_a_memory[address];
+	}
+
+	this->_mutex.unlock();
+	return item;
+}
+
+int Memory::get_sword(const unsigned address)
+{
+	this->_mutex.lock();
+
+	int item = 0;
+	if (this->base_address <= address &&
+		address + sizeof(int) < this->memory_size) {
+		item = *(int*)(this->_a_memory + address);
+	}
+
+	this->_mutex.unlock();
+	return item;
+}
+
+void Memory::set_byte(const unsigned address, const int byte)
+{
+	this->_mutex.lock();
+
+	if (this->base_address <= address &&
+		address < this->memory_size) {
+		this->_a_memory[address] = (char)byte;
+	}
+
+	this->_mutex.unlock();
+}
+
+void Memory::set_word(const unsigned address, const long word)
+{
+	this->_mutex.lock();
+
+	if (this->base_address <= address &&
+		address + sizeof(int) < this->memory_size) {
+		*(int*)(this->_a_memory + address) = word;
+	}
+
+	this->_mutex.unlock();
 }
