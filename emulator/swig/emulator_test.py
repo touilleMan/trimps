@@ -84,28 +84,28 @@ class Test_memory(unittest.TestCase):
         self.assertRaises(OverflowError, memory.get_sword, -1)
 
 
-# class Test_execute(unittest.TestCase):
+class Test_execute(unittest.TestCase):
 
-#     def testGeneric(self):
-#         good_r = [ 0x00000000 for _ in xrange(32) ]
-#         cpu = Cpu()
+    def testGeneric(self):
+        good_r = [ 0x00000000 for _ in xrange(32) ]
+        cpu = Cpu()
 
-#         cpu.r[1] = 1
-#         cpu.execute(0b00000000001000000000100000100100)
-#         self.assertEqual(cpu.r, good_r, 'AND $1, $1, $0 failed')
+        cpu.r[1] = 1
+        cpu.execute(0b00000000001000000000100000100100)
+        self.assertEqual(cpu.r, good_r, 'AND $1, $1, $0 failed')
 
-#         cpu.r[1] = 1
-#         good_r[1] = 1
-#         cpu.execute(0b00000000001000000000100000100101)
-#         self.assertEqual(cpu.r, good_r, 'OR $1, $1, $0 failed')
+        cpu.r[1] = 1
+        good_r[1] = 1
+        cpu.execute(0b00000000001000000000100000100101)
+        self.assertEqual(cpu.r, good_r, 'OR $1, $1, $0 failed')
 
-#         cpu.r[1] = 42
-#         cpu.r[6] = 42 | 111
-#         good_r[1] = 42
-#         good_r[6] = 42 | 111
-#         good_r[3] = 42
-#         cpu.execute(0b00000000001001100001100000100100)
-#         self.assertEqual(cpu.r, good_r, 'AND $3, $1, $6 failed')
+        cpu.r[1] = 42
+        cpu.r[6] = 42 | 111
+        good_r[1] = 42
+        good_r[6] = 42 | 111
+        good_r[3] = 42
+        cpu.execute(0b00000000001001100001100000100100)
+        self.assertEqual(cpu.r, good_r, 'AND $3, $1, $6 failed')
 
 
 # class Test__Cpu__execute_R(unittest.TestCase):
