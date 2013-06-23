@@ -39,11 +39,8 @@ Cpu::~Cpu(void)
 void Cpu::step(const unsigned int count)
 {
     for (unsigned int i = 0; i < count; ++i) {
-        if (this->program_start <= this->fake_pc &&
-            this->fake_pc < this->program_start + this->program_size) {
-            this->execute(this->program[this->fake_pc - this->memory->base_address]);
+        this->execute(this->program.at(this->fake_pc));
     }
-}
 }
 
 void Cpu::load(const char *path, const unsigned int program_start)
@@ -52,6 +49,12 @@ void Cpu::load(const char *path, const unsigned int program_start)
 
     // Unload previous program
     this->program.clear();
+
+    // Make sure the program start is 4bytes aligned
+    if (program_start % 4) {
+        std::string msg("Program start address must be 4 bytes aligned");
+        throw EmulatorException(msg);
+    }
 
     // Actually do the loading
     std::ifstream fs(path, std::fstream::in | std::fstream::binary);
@@ -73,7 +76,7 @@ void Cpu::load(const char *path, const unsigned int program_start)
     this->program_size = this->program.size();
 
     // Reset program counter
-    this->fake_pc = this->program_start;
+    this->set_pc(this->program_start);
 }
 
 static inline int signExtImmed(const unsigned int immed)

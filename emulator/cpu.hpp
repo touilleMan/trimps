@@ -27,7 +27,8 @@ public:
     void execute(const unsigned int intruction);
     void load(const char *path, const unsigned int program_size=DEFAULT_PROGRAM_SIZE);
     /// Get back the CPU's program counter
-    unsigned int get_pc(void) { return this->fake_pc * 4; }
+    unsigned int get_pc(void) { return (this->fake_pc << 2) + this->program_start; }
+    void set_pc(const unsigned int pc) { this->fake_pc = (pc - this->program_start) >> 2; }
 
     /// CPU registers
     std::vector<unsigned int> r = std::vector<unsigned int>(32);
@@ -38,7 +39,7 @@ public:
     unsigned int program_size = 0;
     /// Array of the program's instructions
     std::vector<unsigned int> program = std::vector<unsigned int>();
-    // CPU program counter aligned on 4 bytes
+    // CPU program counter aligned on 4 bytes and offseted of program_start
     unsigned int fake_pc = 0;
 
 private:

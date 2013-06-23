@@ -272,6 +272,25 @@ class Test_load(unittest.TestCase):
         self.assertRaises(Exception, cpu.program, 1)
 
 
+class Test_pc(unittest.TestCase):
+    def testSet(self):
+        cpu = Cpu()
+        cpu.fake_pc = 0x1
+        self.assertEqual(cpu.get_pc(), 0x4)
+
+        cpu.set_pc(0x8)
+        self.assertEqual(cpu.fake_pc, 0x2)
+
+        # pc is out of bounds
+        cpu.set_pc(0xFFFFFFF)
+        self.assertRaises(Exception, cpu.step, 1)
+
+        cpu.program_start = 0x400
+        cpu.set_pc(0x404)
+        self.assertEqual(cpu.fake_pc, 0x1)
+        self.assertEqual(cpu.get_pc(), 0x404)
+
+
 class Test_execute(unittest.TestCase):
 
     def testLoop(self):
