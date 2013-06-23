@@ -200,6 +200,14 @@ class Test__Cpu__execute_I(unittest.TestCase):
         cpu_execute_I(cpu, 0x04, 0, 0, 0x7FFF)
         self.assertEqual(cpu.fake_pc, 0x8000, 'BEQ $0, $0, 0x7FFF failed')
 
+        cpu.fake_pc = 0x2
+        cpu_execute_I(cpu, 0x04, 0, 0, 0xFFFF)
+        self.assertEqual(cpu.fake_pc, 0x2, 'BEQ $0, $0, 0xFFFF failed')
+
+        cpu.fake_pc = 0xF
+        cpu_execute_I(cpu, 0x04, 0, 0, 0xFFF0)
+        self.assertEqual(cpu.fake_pc, 0x0, 'BEQ $0, $0, 0xFFFF failed')
+
         cpu.fake_pc = 0
         cpu.r[1] = 1
         cpu_execute_I(cpu, 0x04, 0, 1, 0xFFFF)
@@ -253,6 +261,7 @@ class Test__Cpu__registers(unittest.TestCase):
         for _ in xrange(0x100000):
             cpu_execute_I(cpu, 0x08, 1, 1, -0x1000)
         self.assertEqual(cpu.r[1], 0x0, 'Register stored value is bigger than 32bits ! ({})'.format(hex(cpu.r[1])))
+
 
 class Test_load(unittest.TestCase):
     def testLoad(self):

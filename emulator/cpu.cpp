@@ -39,7 +39,12 @@ Cpu::~Cpu(void)
 void Cpu::step(const unsigned int count)
 {
     for (unsigned int i = 0; i < count; ++i) {
-        this->execute(this->program.at(this->fake_pc));
+        if (this->fake_pc < this->program.size()) {
+            this->execute(this->program[this->fake_pc]);
+        } else {
+            // PC is out of bounds, nothing to do
+            ++this->fake_pc;
+        }
     }
 }
 
@@ -138,11 +143,7 @@ void Cpu::execute(const unsigned int instruction)
 
         case 0x04: // I instruction, BEQ
         if (this->r[rs] == this->r[rt]) {
-            if ((immed & (1 << 15)) == 1) {
-                this->fake_pc = ((0x3FFF << 16) | immed) + 1;
-            } else {
-                this->fake_pc += immed + 1;
-            }
+            this->fake_pc += signExtImmed(immed) + 1;
         } else {
             ++this->fake_pc;
         }
