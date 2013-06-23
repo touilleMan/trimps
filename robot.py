@@ -1,32 +1,31 @@
 #! /usr/bin/env python
 
 from math import cos, sin, atan, pi
-import emulator
 import pyglet
+
 
 class Motor():
     """Represents a simple step by step electric motor"""
     MAGNET_STRENGTH = 180
     WHEEL_PERIMETER=1
 
-    def __init__(self):
+    def __init__(self, io_callback):
+        """io_callback is the function used to get/set the IO data from the memory
+        """
+        self.io_callback = io_callback
         # Current magnets' state of the motor
         self.magnets = [ {'angle' : i * 90, 'state' : 0} for i in xrange(4) ]
         # Position of the rotor's head (i.e. magnet-sensitive part)
         self.rotor_angle = 0
         self.linear_speed = 0
 
-    def synchronise(self, io_byte):
-        """Synchronise the magnets state according to the given IO"""
-        # io_byte store the magnets state with it first 4 bits
-        for i in xrange(len(self.magnets)):
-            self.magnets[i]['state'] = (io_byte >> i) & 0x1
-        # Return the same io given we are only a input
-        return io_byte
-
     def update(self, dt):
         """Update the physical state of the motor
         """
+        # First we have to get back the current state from the IO
+        io_byte = self.io_callback()
+        for i in xrange(len(self.magnets)):
+            self.magnets[i]['state'] = (io_byte >> i) & 0x1
         # Compute strengths the magnets apply on the rotor
         strength = 0
         # Only the activated magnets apply force on the rotor
@@ -54,23 +53,14 @@ class Robot():
     def __init__(self, memory, x=50, y=50):
         self.memory = memory
         # Modules
-        self.motorR = Motor()
-        self.motorL = Motor()
+        self.motorR = Motor(lambda : (self.memory[0x10] >> 4) & 0x0F)
+        self.motorL = Motor(lambda : self.memory[0x10] & 0x0F)
         self.labelR = pyglet.text.Label('Right speed : 0', x= 10, y=30, color=(0, 0, 0, 255))
         self.labelL = pyglet.text.Label('Left speed : 0', x= 10, y=50, color=(0, 0, 0, 255))
         self.sprite = pyglet.sprite.Sprite(self.IMAGE, x, y)
 
-        # Connect the modules' IOs in memory
-        self.memory.bind(address=0x10, bitmask=0xF0,
-            callback=lambda x: self.motorL.synchronise((x>>4)) << 4)
-        self.memory.bind(address=0x10, bitmask=0x0F,
-            callback=self.motorR.synchronise)
-
     def update(self, dt):
         """Update the motor physical state"""
-        # First, synchronise with the real memory
-        self.memory.synchronise()
-
         # Update the modules
         self.motorR.update(dt)
         self.motorL.update(dt)

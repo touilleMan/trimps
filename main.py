@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 
 import pyglet
-from datetime import datetime
-import time
 
 from emulator import Cpu, Memory
 from robot import Robot
