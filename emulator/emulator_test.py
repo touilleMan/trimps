@@ -194,16 +194,34 @@ class Test__Cpu__execute_I(unittest.TestCase):
     def testBEQ(self):
         cpu = Cpu()
         cpu_execute_I(cpu, 0x04, 0, 0, 0x42)
-        self.assertEqual(cpu.fake_pc, 0x42, 'BEQ $0, $0, 0x42 failed')
+        self.assertEqual(cpu.fake_pc, 0x43, 'BEQ $0, $0, 0x42 failed')
 
         cpu.fake_pc = 0
         cpu_execute_I(cpu, 0x04, 0, 0, 0x7FFF)
-        self.assertEqual(cpu.fake_pc, 0x7FFF, 'BEQ $0, $0, 0x7FFF failed')
+        self.assertEqual(cpu.fake_pc, 0x8000, 'BEQ $0, $0, 0x7FFF failed')
 
         cpu.fake_pc = 0
         cpu.r[1] = 1
         cpu_execute_I(cpu, 0x04, 0, 1, 0xFFFF)
-        self.assertEqual(cpu.fake_pc, 0x0, 'BEQ $0, $1, 0xFFFF failed')
+        self.assertEqual(cpu.fake_pc, 0x1, 'BEQ $0, $1, 0xFFFF failed')
+
+    def testADDI(self):
+        cpu = Cpu()
+        cpu_execute_I(cpu, 0x08, 0, 1, 0x42)
+        self.assertEqual(cpu.r[1], 0x42, 'ADDI $1, $0, 0x42 failed')
+
+        cpu_execute_I(cpu, 0x08, 1, 2, -0x41)
+        self.assertEqual(cpu.r[2], 0x1, 'ADDI $2, $1, -0x41 failed')
+
+        cpu.r[4] = 201
+        for _ in xrange(200):
+            cpu_execute_I(cpu, 0x08, 4, 4, -1)
+        self.assertEqual(cpu.r[4], 0x1, 'ADDI $4, $4, -1 loop failed')
+
+        cpu.r[5] = 0
+        for _ in xrange(200):
+            cpu_execute_I(cpu, 0x08, 5, 5, -1)
+        self.assertEqual(cpu.r[5], 0xFFFFFFFF - 199, 'ADDI $5, $5, -1 loop failed')
 
 
 cpu_execute_J = lambda cpu, opcode, addr : \
@@ -235,6 +253,124 @@ class Test__Cpu__registers(unittest.TestCase):
         for _ in xrange(0x100000):
             cpu_execute_I(cpu, 0x08, 1, 1, -0x1000)
         self.assertEqual(cpu.r[1], 0x0, 'Register stored value is bigger than 32bits ! ({})'.format(hex(cpu.r[1])))
+
+class Test_load(unittest.TestCase):
+    def testLoad(self):
+        cpu = Cpu()
+        cpu.load("tests/loop.mips")
+        self.assertEqual(bin(cpu.program[0]), bin(0x08000000))
+        self.assertEqual(cpu.program_size, 1)
+        self.assertRaises(Exception, cpu.program, 1)
+
+        self.assertRaises(Exception, cpu.load, "bad_file")
+
+        cpu.fake_pc = 42
+        cpu.load("tests/assign.mips")
+        self.assertEqual(cpu.fake_pc, cpu.program_start)
+        self.assertEqual(cpu.program_size, 7)
+
+        self.assertRaises(Exception, cpu.program, 1)
+
+
+class Test_execute(unittest.TestCase):
+
+    def testLoop(self):
+        """Simple infinite loop
+           loop:
+                j loop
+        """
+        cpu = Cpu()
+        cpu.load("tests/loop.mips")
+        for _ in xrange(10):
+            cpu.step()
+            self.assertEqual(cpu.fake_pc, 0x0)
+        cpu.step(100)
+        self.assertEqual(cpu.fake_pc, 0x0)
+
+    def testAssign(self):
+        """Assignation tests
+       or $0, $0, $0       ; useless
+       or $0, $0, $0       ; useless
+       ; fake_pc == 2
+           ori $1, $0, 25
+       ; r[1] = 25
+           ori $1, $0, 0xFF
+       ; r[1] = 0xFF
+           addi $2, $0, 42
+       ; r[2] = 42
+       and $3, $2, $1
+       ; r[3] = 42
+       addi $3, $3, -41
+       ; r[3] = 1
+        """
+        cpu = Cpu()
+        cpu.load("tests/assign.mips")
+        good_r = [ 0x00000000 for _ in xrange(32) ]
+
+        cpu.step(2)
+        self.assertEqual(cpu.fake_pc, 0x2)
+
+        cpu.step()
+        good_r[1] = 25
+        self.assertTrue(cmp_regs(cpu.r, good_r))
+
+        cpu.step()
+        good_r[1] = 0xFF
+        self.assertTrue(cmp_regs(cpu.r, good_r))
+
+        cpu.step()
+        good_r[2] = 42
+        self.assertTrue(cmp_regs(cpu.r, good_r))
+
+        cpu.step()
+        good_r[3] = 42
+        self.assertTrue(cmp_regs(cpu.r, good_r))
+
+        cpu.step()
+        good_r[3] = 1
+        self.assertTrue(cmp_regs(cpu.r, good_r))
+
+    def testJump(self):
+        """Assignation tests
+        start:
+        j end
+        or $0, $0, $0 ; useless
+        or $0, $0, $0 ; useless
+        or $0, $0, $0 ; useless
+        end:
+        j start
+        """
+        cpu = Cpu()
+        cpu.load("tests/jump.mips")
+        cpu.step()
+        self.assertEqual(cpu.fake_pc, 4)
+        cpu.step()
+        self.assertEqual(cpu.fake_pc, 0)
+
+    def testBeq(self):
+        """Assignation tests
+        ori $1, $0, 0x25
+        loop:
+        beq $1, $0, end
+        addi $1, $1, -1
+        j loop
+        end:
+        or $0, $0, $0 ; useless
+        """
+        cpu = Cpu()
+        cpu.load("tests/beq.mips")
+
+        cpu.step()
+        self.assertEqual(cpu.r[1], 0x25)
+        self.assertEqual(cpu.fake_pc, 1)
+        for i in reversed(xrange(0x25)):
+            cpu.step()
+            self.assertEqual(cpu.fake_pc, 2)
+            cpu.step(2)
+            self.assertEqual(cpu.r[1], i)
+            self.assertEqual(cpu.fake_pc, 1)
+        cpu.step()
+        self.assertEqual(cpu.fake_pc, 4)
 
 
 if __name__ == '__main__':

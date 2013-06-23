@@ -2,8 +2,19 @@
 #define _CPU_H_
 
 #include <vector>
+#include <string>
+#include <exception>
 
 #define DEFAULT_PROGRAM_SIZE 0x0
+
+class EmulatorException : public std::exception {
+public:
+    EmulatorException(std::string &msg);
+    const char* what(void);
+
+private:
+    std::string _msg;
+};
 
 class Memory;
 
