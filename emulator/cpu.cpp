@@ -39,12 +39,7 @@ Cpu::~Cpu(void)
 void Cpu::step(const unsigned int count)
 {
     for (unsigned int i = 0; i < count; ++i) {
-        if (this->fake_pc < this->program.size()) {
-            this->execute(this->program[this->fake_pc]);
-        } else {
-            // PC is out of bounds, nothing to do
-            ++this->fake_pc;
-        }
+        this->execute(this->program.at(this->fake_pc));
     }
 }
 
@@ -179,7 +174,7 @@ void Cpu::execute(const unsigned int instruction)
         break;
 
         case 0x02: // J instruction, JUMP
-        this->fake_pc = (this->fake_pc & (0x3F << 26)) | addr;
+        this->set_pc(((this->get_pc() + 4) & (0x3F << 28)) | addr << 2);
         break;
 
         default:
