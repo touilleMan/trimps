@@ -7,42 +7,56 @@ import pyglet
 class Motor():
     """Represents a simple step by step electric motor"""
     MAGNET_STRENGTH = 180
-    WHEEL_PERIMETER=1
+    SPEED_COEF=5
+    FREQUENCY_MAX=600
+    FREQUENCY_MIN=50
+    TIMECAP_MAX=1/FREQUENCY_MIN
+    TIMECAP_MIN=1/FREQUENCY_MAX
 
     def __init__(self, io_callback):
         """io_callback is the function used to get/set the IO data from the memory
         """
         self.io_callback = io_callback
         # Current magnets' state of the motor
-        self.magnets = [ {'angle' : i * 90, 'state' : 0} for i in xrange(4) ]
-        # Position of the rotor's head (i.e. magnet-sensitive part)
-        self.rotor_angle = 0
+        self.magnets = [ 0, 0, 0, 0 ]
+        # Linear speed of the motor
         self.linear_speed = 0
+        # Time elapsed from the last magnets change
+        self.lastchange = 0
+        # Time the motor can keep the current speed
+        self.timecap = 0
 
     def update(self, dt):
         """Update the physical state of the motor
         """
         # First we have to get back the current state from the IO
         io_byte = self.io_callback()
-        for i in xrange(len(self.magnets)):
-            self.magnets[i]['state'] = (io_byte >> i) & 0x1
-        # Compute strengths the magnets apply on the rotor
-        strength = 0
-        # Only the activated magnets apply force on the rotor
-        for magnet in [ m for m in self.magnets if m['state'] == 1 ]:
-            # Retreive the angle distance between the magnet an the rotor
-            dangle = magnet['angle'] - self.rotor_angle
-            if dangle > 180:
-                dangle -= 180
-            # The closer the magnet is, the bigger the strength
-            if -1 < dangle < 1:
-                strength += self.MAGNET_STRENGTH
+        magnets = [ (io_byte >> i) & 0x1 for i in xrange(4)]
+
+        self.lastchange += dt
+        # Now see if the magnets moved or not
+        if magnets != self.magnets:
+            frequency = 1 / self.lastchange
+            # Verify the magnet change is valid to make the motor move
+            if len([ m for m in magnets if m == 1 ]) == 1 and \
+               len([ m for m in self.magnets if m == 1 ]) == 1 and \
+               self.FREQUENCY_MIN < frequency < self.FREQUENCY_MAX:
+                # The speed depends of the change frequency
+                self.linear_speed = frequency * self.SPEED_COEF
+                self.timecap = self.lastchange
             else:
-                strength += (1 / dangle) * self.MAGNET_STRENGTH
-        # To cut simple, we consider this strength is an angular speed
-        # Then we can update the rotor position and the linear speed
-        self.rotor_angle += strength * dt
-        self.linear_speed = strength * self.WHEEL_PERIMETER
+                # Bad magnet configuration, no move is possible
+                self.timecap = 0
+            # Finally, update the magnets state
+            self.magnets = magnets
+            self.lastchange = 0
+        else:
+            # Magnets state didn't change, check if the motor
+            # still has speed
+            if self.lastchange > self.timecap:
+                # It's been too long since the motor has been updated
+                self.linear_speed = 0
+
 
 class Robot():
     """Physical representation of the robot"""
@@ -65,17 +79,19 @@ class Robot():
         self.motorR.update(dt)
         self.motorL.update(dt)
 
+        # Left motor is mounted backward, we have to invert it speed
+        inv_L_linear_speed = -self.motorL.linear_speed
         # Get the total speed from motors' one
         # The two motors have different speed,
         # the difference of them creates a turn
-        turn = self.motorR.linear_speed - self.motorL.linear_speed
-        if self.motorR.linear_speed == 0 or self.motorL.linear_speed == 0 or \
+        turn = self.motorR.linear_speed - inv_L_linear_speed
+        if self.motorR.linear_speed == 0 or inv_L_linear_speed == 0 or \
            (self.motorR.linear_speed / self.motorR.linear_speed) != \
-           (self.motorL.linear_speed / self.motorL.linear_speed):
+           (inv_L_linear_speed / inv_L_linear_speed):
             straight = 0
         else:
-            sign = self.motorR.linear_speed / self.motorR.linear_speed
-            straight = sign * min([abs(self.motorR.linear_speed), abs(self.motorL.linear_speed)])
+            sign = self.motorR.linear_speed / -inv_L_linear_speed
+            straight = sign * min([abs(self.motorR.linear_speed), abs(inv_L_linear_speed)])
 
         # Update the robot position
         # TODO : check colisions
@@ -83,7 +99,7 @@ class Robot():
         self.sprite.y += -straight * sin(self.sprite.rotation * pi / 180) * dt
         self.sprite.rotation += atan(turn / self.sprite.width) * dt
         self.labelR.text = 'Right speed : {}'.format(self.motorR.linear_speed)
-        self.labelL.text = 'Left speed : {}'.format(self.motorL.linear_speed)
+        self.labelL.text = 'Left speed : {}'.format(inv_L_linear_speed)
 
     def draw(self):
         """Display on screen the robot"""
