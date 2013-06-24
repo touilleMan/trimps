@@ -4,6 +4,19 @@ from math import cos, sin, atan, pi
 import pyglet
 
 
+class LineSensor():
+    """This module detect the black line draw on the ground"""
+    SENSORS_WIDTH = 5
+    SENSORS_SPACE = 10
+
+    def __init__(self, io_callback):
+        self.io_callback = io_callback
+        self.sensors = [ 0, 0, 0, 0, 0, 0 ,0 ]
+
+    def update(self, dt):
+        pass
+
+
 class Motor():
     """Represents a simple step by step electric motor"""
     MAGNET_STRENGTH = 180
@@ -37,12 +50,20 @@ class Motor():
         # Now see if the magnets moved or not
         if magnets != self.magnets:
             frequency = 1 / self.lastchange
+
             # Verify the magnet change is valid to make the motor move
             if len([ m for m in magnets if m == 1 ]) == 1 and \
                len([ m for m in self.magnets if m == 1 ]) == 1 and \
                self.FREQUENCY_MIN < frequency < self.FREQUENCY_MAX:
-                # The speed depends of the change frequency
-                self.linear_speed = frequency * self.SPEED_COEF
+                # Does the motor goes backward or not ?
+                for i in [ j for j in xrange(4) if self.magnets[j] == 1 ]:
+                    if magnets[(i + 1) % 4] == 1:
+                        self.linear_speed = - frequency * self.SPEED_COEF
+                    elif magnets[(i - 1) % 4] == 1:
+                        self.linear_speed = frequency * self.SPEED_COEF  
+                    else:
+                        print [ i for i in magnets if i == 1 ], i
+                        self.linear_speed = 0
                 self.timecap = self.lastchange
             else:
                 # Bad magnet configuration, no move is possible
@@ -71,6 +92,8 @@ class Robot():
         self.motorL = Motor(lambda : self.memory[0x10] & 0x0F)
         self.labelR = pyglet.text.Label('Right speed : 0', x= 10, y=30, color=(0, 0, 0, 255))
         self.labelL = pyglet.text.Label('Left speed : 0', x= 10, y=50, color=(0, 0, 0, 255))
+        self.lineSensor = LineSensor(lambda out: self.memory.set_byte(0x21, out))
+        self.labelSensor = pyglet.text.Label('sensors : 0000000', x= 10, y=460, color=(0, 0, 0, 255))
         self.sprite = pyglet.sprite.Sprite(self.IMAGE, x, y)
 
     def update(self, dt):
@@ -90,7 +113,7 @@ class Robot():
            (inv_L_linear_speed / inv_L_linear_speed):
             straight = 0
         else:
-            sign = self.motorR.linear_speed / -inv_L_linear_speed
+            sign = self.motorR.linear_speed / inv_L_linear_speed
             straight = sign * min([abs(self.motorR.linear_speed), abs(inv_L_linear_speed)])
 
         # Update the robot position
@@ -106,3 +129,4 @@ class Robot():
         self.sprite.draw()
         self.labelR.draw()
         self.labelL.draw()
+        self.labelSensor.draw()
