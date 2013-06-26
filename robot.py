@@ -4,18 +4,47 @@ from math import cos, sin, atan, pi
 import pyglet
 
 
+class Tracer():
+    def __init__(self, window):
+        # First create the image where we display the traced line
+        pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 0))
+        self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern)
+        # Now create a second bitmap which will be use to check the sensor state
+        self.prev_x = None
+        self.prev_y = None
+
+    def update(x, y):
+        self.prev_x = x
+        self.prev_y = y
+
 class LineSensor():
     """This module detect the black line draw on the ground"""
-    SENSORS_WIDTH = 5
-    SENSORS_SPACE = 10
 
-    def __init__(self, io_callback):
+    def __init__(self, io_callback, space=10, tracer=None):
+        # Sensors
+        width = space / 7
         self.io_callback = io_callback
-        self.sensors = [ 0, 0, 0, 0, 0, 0 ,0 ]
+        self.sensors = []
+        self.tracer = tracer
+        x = -3 * width
+        for i in xrange(7):
+            self.sensors.append({ 'state' : 0, 'x' : x })
+            x += width
 
-    def update(self, dt):
-        pass
+    def update(self, dt, robot):
+        # Check what see each sensor
+        io_byte = 0x0
+        for i in xrange(7):
+            x = robot.sprite.x
+            y = robot.sprite.y
+            pix = self.tracer.get_region(x, y, 1, 1).get_image_data()
+            pix =pix.get_data("RGBA", 4)
+            print pix[3]
+            io_byte = ord(pix[3]) << i
+        self.io_callback(io_byte)
 
+    def draw(self):
+        self.tracer.blit(0, 0)
 
 class Motor():
     """Represents a simple step by step electric motor"""
@@ -85,22 +114,31 @@ class Robot():
     IMAGE.anchor_x = IMAGE.width / 2
     IMAGE.anchor_y = IMAGE.height / 2
 
-    def __init__(self, memory, x=50, y=50):
+    def __init__(self, memory, x=50, y=50, sensors=None):
+        """memory : RAM emulated memory to use
+           x, y : start position
+           sensors : extension sensors plugged to the robot
+        """
         self.memory = memory
         # Modules
         self.motorR = Motor(lambda : (self.memory[0x10] >> 4) & 0x0F)
         self.motorL = Motor(lambda : self.memory[0x10] & 0x0F)
         self.labelR = pyglet.text.Label('Right speed : 0', x= 10, y=30, color=(0, 0, 0, 255))
         self.labelL = pyglet.text.Label('Left speed : 0', x= 10, y=50, color=(0, 0, 0, 255))
-        self.lineSensor = LineSensor(lambda out: self.memory.set_byte(0x21, out))
-        self.labelSensor = pyglet.text.Label('sensors : 0000000', x= 10, y=460, color=(0, 0, 0, 255))
+#        self.labelSensor = pyglet.text.Label('sensors : 0000000', x= 10, y=460, color=(0, 0, 0, 255))
         self.sprite = pyglet.sprite.Sprite(self.IMAGE, x, y)
+        if sensors is None:
+            self.sensors = []
+        else:
+            self.sensors = sensors
 
     def update(self, dt):
         """Update the motor physical state"""
         # Update the modules
         self.motorR.update(dt)
         self.motorL.update(dt)
+        for s in self.sensors:
+            s.update(dt, self)
 
         # Left motor is mounted backward, we have to invert it speed
         inv_L_linear_speed = -self.motorL.linear_speed
@@ -126,7 +164,9 @@ class Robot():
 
     def draw(self):
         """Display on screen the robot"""
+        for s in [s for s in self.sensors if hasattr(s, "draw")]:
+            s.draw()
         self.sprite.draw()
         self.labelR.draw()
         self.labelL.draw()
-        self.labelSensor.draw()
+#        self.labelSensor.draw()

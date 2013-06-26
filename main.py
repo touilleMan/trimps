@@ -3,7 +3,7 @@
 import pyglet
 
 from emulator import Cpu, Memory
-from robot import Robot
+from robot import Robot, LineSensor
 from world import World
 
 # 12.5MHz CPU
@@ -31,6 +31,9 @@ class Program:
         self.cpu = Cpu(self.memory)
         self.robot = Robot(self.memory)
         self.world = World()
+        lineSensor = LineSensor(lambda out: self.memory.set_byte(0x21, out),
+            space=self.robot.IMAGE.width, tracer=self.world.tracer)
+        self.robot.sensors.append(lineSensor)
         self.world.add(self.robot)
         self.world.robot = self.robot
 

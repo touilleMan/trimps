@@ -24,8 +24,9 @@ class Camera(object):
         pyglet.gl.glLoadIdentity()
         pyglet.gl.gluOrtho2D(0, self.win.width, 0, self.win.height)
 
+
 class World():
-    """Physical world the robot evoluate in"""
+    """Physical world the robot evoluates in"""
     POINT=pyglet.image.create(10, 10,
         pyglet.image.SolidColorImagePattern((0, 0, 0, 255)))
     POINT.anchor_x = POINT.width / 2
@@ -35,9 +36,9 @@ class World():
         self.elements = []
         self.window = pyglet.window.Window()
         # Set a white background
-        pyglet.gl.glClearColor(1,1,1,0)
-        pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
-        self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern).get_texture()
+        pyglet.gl.glClearColor(1,1,1,1)
+        pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 0))
+        self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern)
         self.camera = Camera(self.window)
         self.robot = None
 
@@ -72,7 +73,6 @@ class World():
                 self.robot.sprite.y = y
             elif button == pyglet.window.mouse.LEFT:
                 self.tracer.blit_into(self.POINT, x, y, 0)
-
 
     def add(self, elm):
         """Add a new element to the world"""
