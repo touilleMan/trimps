@@ -1,33 +1,36 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Trimps by touilleMan</title>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Trimps : MIPS car-like robot emulator" />
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Trimps</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Trimps</h1>
-        <p>MIPS car-like robot emulator</p>
 
-        <p class="view"><a href="https://github.com/touilleMan/trimps">View the Project on GitHub <small>touilleMan/trimps</small></a></p>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/touilleMan/trimps">View on GitHub</a>
 
+          <h1 id="project_title">Trimps</h1>
+          <h2 id="project_tagline">MIPS car-like robot emulator</h2>
 
-        <ul>
-          <li><a href="https://github.com/touilleMan/trimps/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/touilleMan/trimps/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/touilleMan/trimps">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/touilleMan/trimps/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/touilleMan/trimps/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <h1>
 <a name="trimps---mips-driven-robot-emulator" class="anchor" href="#trimps---mips-driven-robot-emulator"><span class="octicon octicon-link"></span></a>Trimps - MIPS-driven robot emulator</h1>
 
@@ -38,13 +41,13 @@
 Make a small robot following a line on the ground.</p>
 
 <p>The tricky part was the fact the robot didn't contain a CPU but only a FPGA (programmable transistors).
-All the challenge was then to design an entire MIPS CPU, load it on the FPGA in order to make it execute the line-follower algorithm program.</p>
+All the challenge was then to design an entire MIPS CPU, load it on the FPGA in order to make it execute an embedded line-tracer algorithm program.</p>
 
 <h2>
 <a name="why-this-project" class="anchor" href="#why-this-project"><span class="octicon octicon-link"></span></a>Why this project</h2>
 
 <p>During this great project, I realized I didn't have any simulating tool, and then have to deal with numerous possible piece of failures.
-Indeed, when you execute a program you wrote (in assembly of course...) on a CPU you wrote, it's hard to know what's the piece of failure.
+Indeed, when you execute a program you wrote (in assembly of course...) on a CPU you wrote, it's hard to know who is to blame.
 In fact it was even worse than that given I wrote my own assembler <a href="https://github.com/touilleMan/gopiler">gopiler</a> to build my code...</p>
 
 <p>Thus the idea behind this project is to provide a simple environment to simulate a robot with an embedded MIPS CPU. Then it becomes quiet easier to develop and test at home some algorithm before loading them on the real robot with then only one possible point of failure : the designed CPU.</p>
@@ -52,15 +55,19 @@ In fact it was even worse than that given I wrote my own assembler <a href="http
 <h2>
 <a name="state" class="anchor" href="#state"><span class="octicon octicon-link"></span></a>State</h2>
 
-<p>For the moment, the project is on it early days. Only a rough MIPS CPU emulator and a ugly gui.
+<p>For the moment, the project is on it early days.
 But be sure things are moving fast !</p>
       </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/touilleMan">touilleMan</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Trimps maintained by <a href="https://github.com/touilleMan">touilleMan</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
+
               <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
@@ -71,6 +78,7 @@ But be sure things are moving fast !</p>
             pageTracker._trackPageview();
             } catch(err) {}
           </script>
+
 
   </body>
 </html>
