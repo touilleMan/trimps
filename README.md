@@ -1,4 +1,4 @@
-# Jangchi - MIPS-driven robot emulator
+# Trimps - MIPS-driven robot emulator
 
 ## Introduction
 
