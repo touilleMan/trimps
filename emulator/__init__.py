@@ -1,12 +1,10 @@
 #! /usr/bin/env python
 
-# Check if emulator compiled version is disponible
+# Check if C++ version is compiled
 try:
-	with open("emulator.so"):
-		pass
-	from emulator import Cpu, Memory
+	from cpp_emulator import Cpu, Memory
 
 # Otherwise, load the pure python version
-except IOError:
+except ImportError:
 	from cpu import Cpu
 	from memory import Memory

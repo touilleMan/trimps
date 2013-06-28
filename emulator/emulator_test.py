@@ -4,16 +4,14 @@ import unittest
 
 # Check if emulator compiled version is disponible
 try:
-    with open("emulator.so"):
-        pass
+    from cpp_emulator import Cpu, Memory
     print "TESTING C++ version"
-    from emulator import Cpu, Memory
 
 # Otherwise, load the pure python version
-except IOError:
-    print "TESTING PYTHON version"
+except ImportError:
     from cpu import Cpu
     from memory import Memory
+    print "TESTING PYTHON version"
 
 
 class Test_memory(unittest.TestCase):

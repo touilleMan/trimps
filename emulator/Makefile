@@ -3,11 +3,11 @@ CXXFLAGS=-W -Wall -fpic -std=c++0x -pedantic
 SWIG=swig
 SWIGFLAGS=-c++ -python
 INCLUDE=-I /usr/include/python2.7/
-TARGET=_emulator.so
+TARGET=_cpp_emulator.so
 
-SRC=cpu.cpp memory.cpp
+SRC=cpp/cpu.cpp cpp/memory.cpp
 OBJ=$(SRC:.cpp=.o)
-SWIG_SRC=emulator.i
+SWIG_SRC=cpp/cpp_emulator.i
 SWIG_OBJ=$(SWIG_SRC:.i=_wrap.cxx)
 SWIG_OBJ_PY=$(SWIG_SRC:.i=.py)
 
@@ -25,6 +25,7 @@ cmodule: $(OBJ)
 
 %_wrap.cxx: %.i
 	$(SWIG) $(SWIGFLAGS) $<
+	mv $(SWIG_OBJ_PY) .
 
 clean:
 	rm -f $(OBJ)
