@@ -5,7 +5,7 @@
 #include <string>
 #include <exception>
 
-#define DEFAULT_PROGRAM_SIZE 0x0
+#define DEFAULT_PROGRAM_START 0x0
 
 class EmulatorException : public std::exception {
 public:
@@ -20,12 +20,12 @@ class Memory;
 
 class Cpu {
 public:
-    Cpu(Memory *memory=nullptr, const unsigned int start_address=0);
+    Cpu(Memory *memory=nullptr);
     virtual ~Cpu(void);
 
     void step(const unsigned int count=1);
     void execute(const unsigned int intruction);
-    void load(const char *path, const unsigned int program_size=DEFAULT_PROGRAM_SIZE);
+    void load(const char *path, const unsigned int program_start=DEFAULT_PROGRAM_START);
     /// Get back the CPU's program counter
     unsigned int get_pc(void) { return (this->fake_pc << 2) + this->program_start; }
     void set_pc(const unsigned int pc) { this->fake_pc = (pc - this->program_start) >> 2; }

@@ -15,9 +15,9 @@ const char* EmulatorException::what(void)
     return _msg.c_str();
 }
 
-Cpu::Cpu(Memory *memory, const unsigned int start_address)
+Cpu::Cpu(Memory *memory)
 {
-    this->program_start = start_address;
+    this->program_start = program_start;
     if (memory != nullptr) {
         // If a memory was given, use this one
         this->memory = memory;

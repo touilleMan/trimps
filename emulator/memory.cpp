@@ -13,7 +13,7 @@ Memory::~Memory(void)
 
 int Memory::__getitem__(const unsigned address)
 {
-	return (int)get_ubyte(address);
+	return get_sbyte(address);
 }
 
 void Memory::__setitem__(const unsigned address, const int item)
@@ -38,7 +38,7 @@ int Memory::get_sbyte(const unsigned address)
 	int item = 0;
 	if (this->base_address <= address &&
 		address < this->memory_size) {
-		item = this->_a_memory[address];
+		item = this->_a_memory[address - this->base_address];
 	}
 
 	this->_mutex.unlock();
@@ -52,7 +52,7 @@ int Memory::get_sword(const unsigned address)
 	int item = 0;
 	if (this->base_address <= address &&
 		address + sizeof(int) < this->memory_size) {
-		item = *(int*)(this->_a_memory + address);
+		item = *(int*)(this->_a_memory + address - this->base_address);
 	}
 
 	this->_mutex.unlock();
@@ -65,7 +65,7 @@ void Memory::set_byte(const unsigned address, const int byte)
 
 	if (this->base_address <= address &&
 		address < this->memory_size) {
-		this->_a_memory[address] = (char)byte;
+		this->_a_memory[address - this->base_address] = (char)byte;
 	}
 
 	this->_mutex.unlock();
@@ -77,7 +77,7 @@ void Memory::set_word(const unsigned address, const long word)
 
 	if (this->base_address <= address &&
 		address + sizeof(int) < this->memory_size) {
-		*(int*)(this->_a_memory + address) = word;
+		*(int*)(this->_a_memory + address - this->base_address) = word;
 	}
 
 	this->_mutex.unlock();
