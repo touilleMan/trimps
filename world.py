@@ -40,11 +40,13 @@ class World():
         self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern).get_texture()
         self.camera = Camera(self.window)
         self.robot = None
+        self.fps_display = pyglet.clock.ClockDisplay()
 
         @self.window.event
         def on_draw():
             self.window.clear()
             self.tracer.blit(0, 0)
+            self.fps_display.draw()
 #            self.camera.hudProjection()
             for e in self.elements:
                 e.draw()
