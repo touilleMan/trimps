@@ -13,7 +13,7 @@ Memory::~Memory(void)
 
 int Memory::__getitem__(const unsigned address)
 {
-	return get_sbyte(address);
+	return get_ubyte(address);
 }
 
 void Memory::__setitem__(const unsigned address, const int item)
