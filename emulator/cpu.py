@@ -147,7 +147,7 @@ class Cpu():
 
     def __execute_I_LW(self, rs, rt, immed):
         if rt != 0:
-            self.r[rt] = self.memory.get_word(self.r[rs] + signExtImmed(immed))
+            self.r[rt] = self.memory.get_sword(self.r[rs] + signExtImmed(immed))
 
     def __execute_I_SW(self, rs, rt, immed):
         self.memory.set_word(self.r[rs] + signExtImmed(immed), self.r[rt])

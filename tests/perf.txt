@@ -1,0 +1,8 @@
+i5-2400 CPU @ 3.10GHz :
+ legacy :
+ - C : 0.25s
+ - numpy : 111s
+ - no-numpy, pypy : 0.40s
+ current :
+ - cpython : 11.702073s
+ - pypy : 1.10023s

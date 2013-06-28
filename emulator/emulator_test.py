@@ -243,6 +243,24 @@ class Test__Cpu__execute_I(unittest.TestCase):
             cpu_execute_I(cpu, 0x08, 5, 5, -1)
         self.assertEqual(cpu.r[5], 0xFFFFFFFF - 199, 'ADDI $5, $5, -1 loop failed')
 
+    def testLWSW(self):
+        cpu = Cpu()
+        cpu.memory[0x10] = 42
+        cpu_execute_I(cpu, 0x23, 0, 1, 0x10)
+        self.assertEqual(cpu.r[1], 42, 'LW $1, 0x10($0)')
+
+        cpu.r[2] = 0xFF
+        cpu_execute_I(cpu, 0x2b, 0, 2, 0x20)
+        self.assertEqual(cpu.memory[0x20], 0xFF, 'SW $2, 0x20($0)')
+
+        cpu_execute_I(cpu, 0x23, 0, 3, 0x20)
+        self.assertEqual(cpu.r[3], 0xFF, 'LW $3, 0x20($0)')
+
+        cpu.r[4] = 0x10
+        cpu.r[5] = 0x66
+        cpu_execute_I(cpu, 0x2b, 4, 5, 0x20)
+        self.assertEqual(cpu.memory[0x20 + 0x10], 0x66, 'SW $5, 0x20($4)')
+
 
 cpu_execute_J = lambda cpu, opcode, addr : \
                       cpu.execute( (opcode & 0x3F) << 26 | \
