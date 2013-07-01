@@ -2,27 +2,6 @@
 
 import pyglet
 
-class Camera(object):
-    MAX_ZOOM=3
-    MIN_ZOOM=0.8
-    def __init__(self, win, zoom=1.0):
-        self.win = win
-        self.zoom = zoom
-
-    def worldProjection(self):
-        pyglet.gl.glMatrixMode(pyglet.gl.GL_PROJECTION)
-        pyglet.gl.glLoadIdentity()
-        widthRatio = self.win.width / self.win.height
-        pyglet.gl.gluOrtho2D(
-            -self.zoom * widthRatio,
-            self.zoom * widthRatio,
-            -self.zoom,
-            self.zoom)
-
-    def hudProjection(self):
-        pyglet.gl.glMatrixMode(pyglet.gl.GL_PROJECTION)
-        pyglet.gl.glLoadIdentity()
-        pyglet.gl.gluOrtho2D(0, self.win.width, 0, self.win.height)
 
 class World():
     """Physical world the robot evoluate in"""
@@ -34,11 +13,11 @@ class World():
     def __init__(self):
         self.elements = []
         self.window = pyglet.window.Window()
-        # Set a white background
-        pyglet.gl.glClearColor(1,1,1,0)
+        # Create a texture for the linetracer
         pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
         self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern).get_texture()
-        self.camera = Camera(self.window)
+        # Set a white background
+        pyglet.gl.glClearColor(1,1,1,0)
         self.robot = None
         self.fps_display = pyglet.clock.ClockDisplay()
 
@@ -47,7 +26,6 @@ class World():
             self.window.clear()
             self.tracer.blit(0, 0)
             self.fps_display.draw()
-#            self.camera.hudProjection()
             for e in self.elements:
                 e.draw()
 
@@ -74,7 +52,6 @@ class World():
                 self.robot.sprite.y = y
             elif button == pyglet.window.mouse.LEFT:
                 self.tracer.blit_into(self.POINT, x, y, 0)
-
 
     def add(self, elm):
         """Add a new element to the world"""

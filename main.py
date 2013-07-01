@@ -3,7 +3,7 @@
 import pyglet
 
 from emulator import Cpu, Memory
-from robot import Robot
+from robot import Robot, LineSensor
 from world import World
 
 # 12.5MHz CPU
@@ -15,6 +15,11 @@ CPU_SAMPLE = int(CPU_FREQ / SYNCHRONISE_FREQ)
 
 
 class Program:
+    def __attach_sensors(self):
+        pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
+        texture_map = pyglet.image.create(self.window.width, self.window.height, pattern).get_texture()
+
+
     def update(self, arg):
         # Make the CPU run the number of instructions between two synchronisations
         self.cpu.step(CPU_SAMPLE)
@@ -27,12 +32,15 @@ class Program:
         pyglet.app.run()
 
     def __init__(self):
-        self.memory = Memory()
-        self.cpu = Cpu(self.memory)
-        self.robot = Robot(self.memory)
+        memory = Memory()
+        self.cpu = Cpu(memory)
+        self.robot = Robot(memory)
         self.world = World()
         self.world.add(self.robot)
         self.world.robot = self.robot
+        # Attach the robot's modules
+        line_sensor = LineSensor(lambda out: memory.set_byte(0x21, out), self.world.tracer)
+        self.robot.modules.append(line_sensor)
 
 
 if __name__ == '__main__':

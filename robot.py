@@ -2,19 +2,45 @@
 
 from math import cos, sin, atan, pi
 import pyglet
-
+import sys
+import pyopencl as cl
 
 class LineSensor():
     """This module detect the black line draw on the ground"""
     SENSORS_WIDTH = 5
     SENSORS_SPACE = 10
+    clkernel="""
+__kernel void clkernel(__global float2* clpos, __global float2* glpos)
+{
+    //get our index in the array
+    unsigned int i = get_global_id(0);
+ 
+    // copy the x coordinate from the CL buffer to the GL buffer
+    glpos[i].x = clpos[i].x;
+ 
+    // calculate the y coordinate and copy it on the GL buffer
+    glpos[i].y = 0.5 * sin(10.0 * clpos[i].x);
+}
+"""
 
-    def __init__(self, io_callback):
+    def __init__(self, io_callback, texture_map):
+        """io_callback : callback to get/set the IO
+           texture_map : texture the sensor evluate in
+        """
+        self.texture_map = texture_map
         self.io_callback = io_callback
         self.sensors = [ 0, 0, 0, 0, 0, 0 ,0 ]
+        # Create openCL context
+        self.ctx = cl.create_some_context()
+        self.queue = cl.CommandQueue(self.ctx)
+        # Build the openCL program
+        self.program = cl.Program(self.ctx, self.clkernel).build()
+        self.dest_buf = cl.Buffer(self.ctx, cl.mem_flags.WRITE_ONLY, 7)
 
-    def update(self, dt):
-        pass
+    def update(self, dt, robot):
+        # Use openCL here ! ^^
+#        self.program.part1(self.queue, )
+        self.io_callback(0x0)
 
 
 class Motor():
@@ -87,20 +113,22 @@ class Robot():
 
     def __init__(self, memory, x=50, y=50):
         self.memory = memory
-        # Modules
+        self.sprite = pyglet.sprite.Sprite(self.IMAGE, x, y)
+        # Motors are special builtin modules
         self.motorR = Motor(lambda : (self.memory[0x10] >> 4) & 0x0F)
         self.motorL = Motor(lambda : self.memory[0x10] & 0x0F)
-        self.labelR = pyglet.text.Label('Right speed : 0', x= 10, y=30, color=(0, 0, 0, 255))
-        self.labelL = pyglet.text.Label('Left speed : 0', x= 10, y=50, color=(0, 0, 0, 255))
-        self.lineSensor = LineSensor(lambda out: self.memory.set_byte(0x21, out))
-        self.labelSensor = pyglet.text.Label('sensors : 0000000', x= 10, y=460, color=(0, 0, 0, 255))
-        self.sprite = pyglet.sprite.Sprite(self.IMAGE, x, y)
+        self.labelR = pyglet.text.Label('Right speed : 0', x=400, y=30, color=(0, 0, 0, 255))
+        self.labelL = pyglet.text.Label('Left speed : 0', x=400, y=50, color=(0, 0, 0, 255))
+        # Others modules are stored in a array
+        self.modules = []
 
     def update(self, dt):
-        """Update the motor physical state"""
+        """Update the robot physical state"""
         # Update the modules
         self.motorR.update(dt)
         self.motorL.update(dt)
+        for m in self.modules:
+            m.update(dt, self)
 
         # Left motor is mounted backward, we have to invert it speed
         inv_L_linear_speed = -self.motorL.linear_speed
@@ -129,4 +157,3 @@ class Robot():
         self.sprite.draw()
         self.labelR.draw()
         self.labelL.draw()
-        self.labelSensor.draw()
