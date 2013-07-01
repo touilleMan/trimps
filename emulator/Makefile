@@ -30,8 +30,9 @@ cmodule: $(OBJ)
 clean:
 	rm -f $(OBJ)
 	rm -f $(SWIG_OBJ)
-	rm -f $(SWIG_OBJ_PY)
+	rm -f `basename $(SWIG_OBJ_PY)`
 	rm -f $(TARGET)
+	find . -name "*.pyc" -delete
 
 check: all
 	python emulator_test.py
