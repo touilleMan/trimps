@@ -38,7 +38,7 @@ class Test_memory(unittest.TestCase):
         memory[64] = 0xFF
         self.assertEqual(memory[64], 0x0)
         # Address must be > 0
-        self.assertRaises(OverflowError, memory.__getitem__, -1)
+        self.assertEqual(memory[-1], 0x0)
 
     def testSigned(self):
         memory = Memory(64)
@@ -53,6 +53,10 @@ class Test_memory(unittest.TestCase):
         memory.set_word(0x0, 0xFFFFFFFF)
         self.assertEqual(memory.get_uword(0x0), 0xFFFFFFFF)
         self.assertEqual(memory.get_sword(0x0), -1)
+	# Big negative number
+        memory.set_word(0x8, -0x0FFFFFFF)
+        self.assertEqual(memory.get_sword(0x8), -0x0FFFFFFF)
+        self.assertEqual(memory.get_uword(0x8), 0xF0000001)
 
     def testByte(self):
         memory = Memory(64)
@@ -70,8 +74,8 @@ class Test_memory(unittest.TestCase):
         memory[0x2] = 0x7F
         self.assertEqual(memory.get_ubyte(0x2), 0x7F)
         # Address must be > 0
-        self.assertRaises(OverflowError, memory.get_ubyte, -1)
-        self.assertRaises(OverflowError, memory.get_sbyte, -1)
+        self.assertEqual(memory.get_ubyte(-1), 0x0)
+        self.assertEqual(memory.get_sbyte(-1), 0x0)
 
     def testWord(self):
         memory = Memory(64)
@@ -90,8 +94,8 @@ class Test_memory(unittest.TestCase):
         self.assertEqual(memory.get_uword(61), 0)
         self.assertEqual(memory.get_sword(61), 0)
         # Address must be > 0
-        self.assertRaises(OverflowError, memory.get_uword, -1)
-        self.assertRaises(OverflowError, memory.get_sword, -1)
+        self.assertEqual(memory.get_uword(-1), 0x0)
+        self.assertEqual(memory.get_sword(-1), 0x0)
 
 def cmp_regs(regs1, regs2):
     for i in xrange(len(regs1)):
