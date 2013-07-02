@@ -3,25 +3,15 @@
 from math import cos, sin, atan, pi
 import pyglet
 import sys
-import pyopencl as cl
 
 class LineSensor():
-    """This module detect the black line draw on the ground"""
+    """This module detect the black line draw on the ground
+       The IO (only used as a output) from io_callback is
+       composed of 7 bits representing the presence of light
+       (i.e. texture's pixel is not black under the sensor)
+    """
     SENSORS_WIDTH = 5
     SENSORS_SPACE = 10
-    clkernel="""
-__kernel void clkernel(__global float2* clpos, __global float2* glpos)
-{
-    //get our index in the array
-    unsigned int i = get_global_id(0);
- 
-    // copy the x coordinate from the CL buffer to the GL buffer
-    glpos[i].x = clpos[i].x;
- 
-    // calculate the y coordinate and copy it on the GL buffer
-    glpos[i].y = 0.5 * sin(10.0 * clpos[i].x);
-}
-"""
 
     def __init__(self, io_callback, texture_map):
         """io_callback : callback to get/set the IO
@@ -30,23 +20,15 @@ __kernel void clkernel(__global float2* clpos, __global float2* glpos)
         self.texture_map = texture_map
         self.io_callback = io_callback
         self.sensors = [ 0, 0, 0, 0, 0, 0 ,0 ]
-        # Create openCL context
-        self.ctx = cl.create_some_context()
-        self.queue = cl.CommandQueue(self.ctx)
-        # Build the openCL program
-        self.program = cl.Program(self.ctx, self.clkernel).build()
-        self.dest_buf = cl.Buffer(self.ctx, cl.mem_flags.WRITE_ONLY, 7)
 
     def update(self, dt, robot):
-        # Use openCL here ! ^^
-#        self.program.part1(self.queue, )
-        self.io_callback(0x0)
+        self.io_callback(0xFE)
 
 
 class Motor():
     """Represents a simple step by step electric motor"""
     MAGNET_STRENGTH = 180
-    SPEED_COEF=5
+    SPEED_COEF=1
     FREQUENCY_MAX=600
     FREQUENCY_MIN=50
     TIMECAP_MAX=1/FREQUENCY_MIN
@@ -88,7 +70,8 @@ class Motor():
                     elif magnets[(i - 1) % 4] == 1:
                         self.linear_speed = frequency * self.SPEED_COEF  
                     else:
-                        print [ i for i in magnets if i == 1 ], i
+                        # The previous and current magnets are not contiguous,
+                        # the configuration is invalid
                         self.linear_speed = 0
                 self.timecap = self.lastchange
             else:
