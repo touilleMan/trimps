@@ -15,7 +15,7 @@ class World():
         self.window = pyglet.window.Window()
         # Create a texture for the linetracer
         pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
-        self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern).get_texture()
+        self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern)
         # Set a white background
         pyglet.gl.glClearColor(1,1,1,0)
         self.robot = None
@@ -43,7 +43,8 @@ class World():
                 self.robot.sprite.x = x
                 self.robot.sprite.y = y
             elif button == pyglet.window.mouse.LEFT:
-                self.tracer.blit_into(self.POINT, x, y, 0)
+                pattern = pyglet.image.SolidColorImagePattern((0, 0, 255, 255))
+                self.tracer.get_texture().blit_into(self.POINT, x, y, 0)
 
         @self.window.event
         def on_mouse_drag(x, y, dx, dy, button, modifiers):
@@ -51,7 +52,9 @@ class World():
                 self.robot.sprite.x = x
                 self.robot.sprite.y = y
             elif button == pyglet.window.mouse.LEFT:
-                self.tracer.blit_into(self.POINT, x, y, 0)
+                if self.POINT.anchor_x < x < self.window.width and \
+                   self.POINT.anchor_y < y < self.window.height:
+                    self.tracer.get_texture().blit_into(self.POINT, x, y, 0)
 
     def add(self, elm):
         """Add a new element to the world"""

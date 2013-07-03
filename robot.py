@@ -18,11 +18,21 @@ class LineSensor():
            texture_map : texture the sensor evluate in
         """
         self.texture_map = texture_map
+        self.width_len = self.texture_map.width * len(self.texture_map.format)
         self.io_callback = io_callback
-        self.sensors = [ 0, 0, 0, 0, 0, 0 ,0 ]
+#        self.sensors = [ 0, 0, 0, 0, 0, 0 ,0 ]
+        self.sensors = 0xFF
 
     def update(self, dt, robot):
-        self.io_callback(0xFE)
+        # Get back the raw data form the line tracer texture
+#        data = self.texture_map.get_data('RGBA', self.width_len)
+        data = self.texture_map.get_texture().get_region(int(robot.sprite.x), int(robot.sprite.y), 1, 1).get_image_data().data
+        # data = self.texture_map.get_region(robot.sprite.x, robot.sprite.y, 1, 1).get_texture().get_image_data()
+        sensors = 0x00
+        if data[0] == '\xff':
+            sensors = 0xFF
+        self.sensors = sensors
+        self.io_callback(sensors)
 
 
 class Motor():
@@ -102,6 +112,7 @@ class Robot():
         self.motorL = Motor(lambda : self.memory[0x10] & 0x0F)
         self.labelR = pyglet.text.Label('Right speed : 0', x=400, y=30, color=(0, 0, 0, 255))
         self.labelL = pyglet.text.Label('Left speed : 0', x=400, y=50, color=(0, 0, 0, 255))
+        self.labelSensors = pyglet.text.Label('sensors : 0', x=400, y=70, color=(0, 0, 0, 255))
         # Others modules are stored in a array
         self.modules = []
 
@@ -132,11 +143,13 @@ class Robot():
         self.sprite.x += straight * cos(self.sprite.rotation * pi / 180) * dt
         self.sprite.y += -straight * sin(self.sprite.rotation * pi / 180) * dt
         self.sprite.rotation += atan(turn / self.sprite.width) * dt
-        self.labelR.text = 'Right speed : {}'.format(self.motorR.linear_speed)
-        self.labelL.text = 'Left speed : {}'.format(inv_L_linear_speed)
+        self.labelR.text = 'Right speed : {}, x : {}'.format(self.motorR.linear_speed, self.sprite.x)
+        self.labelL.text = 'Left speed : {}, y : {}'.format(inv_L_linear_speed, self.sprite.y)
+        self.labelSensors.text = 'sensors : {}'.format(self.modules[0].sensors)
 
     def draw(self):
         """Display on screen the robot"""
         self.sprite.draw()
         self.labelR.draw()
         self.labelL.draw()
+        self.labelSensors.draw()
