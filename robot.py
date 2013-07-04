@@ -2,7 +2,6 @@
 
 from math import cos, sin, atan, pi
 import pyglet
-import sys
 
 class LineSensor():
     """This module detect the black line draw on the ground
@@ -22,7 +21,7 @@ class LineSensor():
         self.sensors = 0
 
     def update(self, dt, robot):
-        # Get back the value of the pixel under the current sensor
+        # Get back the value of the pixel under each sensor
         if self.world.tracer_data[int(robot.sprite.x) + self.world.tracer_width * int(robot.sprite.y)] == 0xFF:
             self.sensors = 0xFF
         else:

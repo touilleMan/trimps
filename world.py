@@ -15,12 +15,13 @@ class World():
         self.window = pyglet.window.Window()
 
         # Ressources for the line tracer
-        # Create a texture to store the lines drawing
+        # The line tracer is an image where the user can draw a line
+        # Given the memory transfert between RAM and GPU memory is really slow,
+        # we create a texture to display the line on screen...
         pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
         self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern)
         self.tracer_width = self.tracer.width
-        # Get back the raw data from the texture, this is really heavy work
-        # and should be down only when the texture is actualized
+        # ...and an array in memory to represent the pixels drawn for the robot's sensors
         self.tracer_data = [ 0xFF for _ in xrange(self.tracer.width * self.tracer.height)]
 
         # Set a white background
