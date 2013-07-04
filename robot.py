@@ -13,26 +13,21 @@ class LineSensor():
     SENSORS_WIDTH = 5
     SENSORS_SPACE = 10
 
-    def __init__(self, io_callback, texture_map):
+    def __init__(self, io_callback, world):
         """io_callback : callback to get/set the IO
-           texture_map : texture the sensor evluate in
+           world : World class the sensors evoluate in
         """
-        self.texture_map = texture_map
-        self.width_len = self.texture_map.width * len(self.texture_map.format)
+        self.world = world
         self.io_callback = io_callback
-#        self.sensors = [ 0, 0, 0, 0, 0, 0 ,0 ]
-        self.sensors = 0xFF
+        self.sensors = 0
 
     def update(self, dt, robot):
-        # Get back the raw data form the line tracer texture
-#        data = self.texture_map.get_data('RGBA', self.width_len)
-        data = self.texture_map.get_texture().get_region(int(robot.sprite.x), int(robot.sprite.y), 1, 1).get_image_data().data
-        # data = self.texture_map.get_region(robot.sprite.x, robot.sprite.y, 1, 1).get_texture().get_image_data()
-        sensors = 0x00
-        if data[0] == '\xff':
-            sensors = 0xFF
-        self.sensors = sensors
-        self.io_callback(sensors)
+        # Get back the value of the pixel under the current sensor
+        if self.world.tracer_data[int(robot.sprite.x) + self.world.tracer_width * int(robot.sprite.y)] == '\xff':
+            self.sensors = 0xFF
+        else:
+            self.sensors = 0x00
+        self.io_callback(self.sensors)
 
 
 class Motor():

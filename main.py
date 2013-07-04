@@ -39,7 +39,7 @@ class Program:
         self.world.add(self.robot)
         self.world.robot = self.robot
         # Attach the robot's modules
-        line_sensor = LineSensor(lambda out: memory.set_byte(0x21, out), self.world.tracer)
+        line_sensor = LineSensor(lambda out: memory.set_byte(0x21, out), self.world)
         self.robot.modules.append(line_sensor)
 
 
