@@ -23,7 +23,7 @@ class LineSensor():
 
     def update(self, dt, robot):
         # Get back the value of the pixel under the current sensor
-        if self.world.tracer_data[int(robot.sprite.x) + self.world.tracer_width * int(robot.sprite.y)] == '\xff':
+        if self.world.tracer_data[int(robot.sprite.x) + self.world.tracer_width * int(robot.sprite.y)] == 0xFF:
             self.sensors = 0xFF
         else:
             self.sensors = 0x00

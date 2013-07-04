@@ -15,11 +15,6 @@ CPU_SAMPLE = int(CPU_FREQ / SYNCHRONISE_FREQ)
 
 
 class Program:
-    def __attach_sensors(self):
-        pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
-        texture_map = pyglet.image.create(self.window.width, self.window.height, pattern).get_texture()
-
-
     def update(self, arg):
         # Make the CPU run the number of instructions between two synchronisations
         self.cpu.step(CPU_SAMPLE)

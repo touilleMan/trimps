@@ -18,10 +18,10 @@ class World():
         # Create a texture to store the lines drawing
         pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
         self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern)
-        self.tracer_width = self.tracer.width * len(self.tracer.format)
+        self.tracer_width = self.tracer.width
         # Get back the raw data from the texture, this is really heavy work
         # and should be down only when the texture is actualized
-        self.tracer_data = self.tracer.get_texture().get_image_data().data
+        self.tracer_data = [ 0xFF for _ in xrange(self.tracer.width * self.tracer.height)]
 
         # Set a white background
         pyglet.gl.glClearColor(1,1,1,0)
@@ -38,11 +38,7 @@ class World():
 
         @self.window.event
         def on_mouse_scroll(x, y, scroll_x, scroll_y):
-            self.camera.zoom += scroll_y * 0.1
-            if self.camera.zoom > self.camera.MAX_ZOOM:
-                self.camera.zoom = self.camera.MAX_ZOOM
-            elif self.camera.zoom < self.camera.MIN_ZOOM:
-                self.camera.zoom = self.camera.MIN_ZOOM
+            pass
 
         @self.window.event
         def on_mouse_press(x, y, button, modifiers):
@@ -50,9 +46,14 @@ class World():
                 self.robot.sprite.x = x
                 self.robot.sprite.y = y
             elif button == pyglet.window.mouse.LEFT:
-                pattern = pyglet.image.SolidColorImagePattern((0, 0, 255, 255))
                 self.tracer.get_texture().blit_into(self.POINT, x, y, 0)
-                self.tracer_data = self.tracer.get_texture().get_image_data().data
+                w = max(x - self.POINT.anchor_x, 0)
+                h = max(y - self.POINT.anchor_y, 0)
+                w_max = min(x + self.POINT.anchor_x, self.tracer.width)
+                h_max = min(y + self.POINT.anchor_y, self.tracer.height)
+                for w_curr in xrange(w, w_max):
+                    for h_curr in xrange(h, h_max):
+                        self.tracer_data[h_curr * self.tracer.width + w_curr] = 0x00
 
         @self.window.event
         def on_mouse_drag(x, y, dx, dy, button, modifiers):
@@ -63,7 +64,13 @@ class World():
                 if self.POINT.anchor_x < x < self.window.width and \
                    self.POINT.anchor_y < y < self.window.height:
                     self.tracer.get_texture().blit_into(self.POINT, x, y, 0)
-                    self.tracer_data = self.tracer.get_texture().get_image_data().data
+                    w = max(x - self.POINT.anchor_x, 0)
+                    h = max(y - self.POINT.anchor_y, 0)
+                    w_max = min(x + self.POINT.anchor_x, self.tracer.width)
+                    h_max = min(y + self.POINT.anchor_y, self.tracer.height)
+                    for w_curr in xrange(w, w_max):
+                        for h_curr in xrange(h, h_max):
+                            self.tracer_data[h_curr * self.tracer.width + w_curr] = 0x00
 
     def add(self, elm):
         """Add a new element to the world"""
