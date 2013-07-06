@@ -1,7 +1,16 @@
 #! /usr/bin/env python
 
 import pyglet
+from pyglet.window import key
 
+NOTICE = """
+Right click : move robot
+Mouse wheel : turn robot
+Left click : draw line
+Space : display tracer sensors
+P : pause simulation
+C : clear map
+"""
 
 class World():
     """Physical world the robot evoluate in"""
@@ -9,17 +18,29 @@ class World():
         pyglet.image.SolidColorImagePattern((0, 0, 0, 255)))
     POINT.anchor_x = POINT.width / 2
     POINT.anchor_y = POINT.height / 2
+    # Keep some space not to crash if the a part of the robot goes offscreen
+    MARGIN = 100
 
     def __init__(self):
         self.elements = []
-        self.window = pyglet.window.Window()
+        self.window = pyglet.window.Window(800, 600, caption='Trimps')
+        self.notice = pyglet.text.Label(NOTICE, x=10, y=590, color=(0, 0, 0, 255), multiline=True, width=200)
+        self.linesensor_printer = False
+
+        self.pause = False
+        self.pause_label = pyglet.text.Label("PAUSE", x=self.window.width / 2, y=self.window.height / 2, \
+         color=(0, 0, 0, 255), font_size=32, anchor_x='center')
+
+        # The world size is bigger than the window one
+        self.width = self.MARGIN * 2 + self.window.width
+        self.height = self.MARGIN * 2 + self.window.height
 
         # Ressources for the line tracer
         # The line tracer is an image where the user can draw a line
         # Given the memory transfert between RAM and GPU memory is really slow,
         # we create a texture to display the line on screen...
-        pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
-        self.tracer = pyglet.image.create(self.window.width, self.window.height, pattern)
+        self.tracer_pattern = pyglet.image.SolidColorImagePattern((255, 255, 255, 255))
+        self.tracer = pyglet.image.create(self.width, self.height, self.tracer_pattern)
         self.tracer_width = self.tracer.width
         # ...and an array in memory to represent the pixels drawn for the robot's sensors
         self.tracer_data = [ 0xFF for _ in xrange(self.tracer.width * self.tracer.height)]
@@ -32,14 +53,29 @@ class World():
         @self.window.event
         def on_draw():
             self.window.clear()
-            self.tracer.blit(0, 0)
+            self.tracer.blit(-self.MARGIN, -self.MARGIN)
             self.fps_display.draw()
             for e in self.elements:
                 e.draw()
+            self.notice.draw()
+            if self.pause:
+                self.pause_label.draw()
+
+        @self.window.event
+        def on_key_press(symbol, modifiers):
+            if symbol == key.SPACE:
+                self.linesensor_printer = not self.linesensor_printer
+            elif symbol == key.C:
+                # Clear tracer
+                self.tracer = pyglet.image.create(self.width, self.height, self.tracer_pattern)
+                self.tracer_data = [ 0xFF for _ in xrange(self.tracer.width * self.tracer.height)]
+            elif symbol == key.P:
+                self.pause = not self.pause
 
         @self.window.event
         def on_mouse_scroll(x, y, scroll_x, scroll_y):
-            pass
+            # Turn the car
+            self.robot.sprite.rotation += scroll_y * 5
 
         @self.window.event
         def on_mouse_press(x, y, button, modifiers):
@@ -47,6 +83,9 @@ class World():
                 self.robot.sprite.x = x
                 self.robot.sprite.y = y
             elif button == pyglet.window.mouse.LEFT:
+                # Convert windows's coordinate to world one
+                x += self.MARGIN
+                y += self.MARGIN
                 self.tracer.get_texture().blit_into(self.POINT, x, y, 0)
                 w = max(x - self.POINT.anchor_x, 0)
                 h = max(y - self.POINT.anchor_y, 0)
@@ -64,6 +103,9 @@ class World():
             elif button == pyglet.window.mouse.LEFT:
                 if self.POINT.anchor_x < x < self.window.width and \
                    self.POINT.anchor_y < y < self.window.height:
+                    # Convert windows's coordinate to world one
+                    x += self.MARGIN
+                    y += self.MARGIN
                     self.tracer.get_texture().blit_into(self.POINT, x, y, 0)
                     w = max(x - self.POINT.anchor_x, 0)
                     h = max(y - self.POINT.anchor_y, 0)

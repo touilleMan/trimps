@@ -12,8 +12,8 @@ class LineSensor():
        composed of 7 bits representing the presence of light
        (i.e. texture's pixel is not black under the sensor)
     """
-    POINT=pyglet.image.create(1, 1,
-        pyglet.image.SolidColorImagePattern((255, 0, 0, 255)))
+    POINT = { 0xFF : pyglet.image.create(1, 1, pyglet.image.SolidColorImagePattern((255, 0, 0, 255))), \
+    0x00 : pyglet.image.create(1, 1, pyglet.image.SolidColorImagePattern((0, 255, 0, 255))) }
 
     def __init__(self, io_callback, world, robot):
         """io_callback : callback to get/set the IO
@@ -47,11 +47,14 @@ class LineSensor():
         for i in xrange(7):
             sensor = self.sensors[i]
             b = sensor['angle'] + a
-            sensor_x = x + cos(b) * sensor['rayon']
-            sensor_y = y - sin(b) * sensor['rayon']
-            if self.world.tracer_data[int(sensor_x) + self.world.tracer_width * int(sensor_y)] == 0xFF:
+            sensor_x = x + self.world.MARGIN + cos(b) * sensor['rayon']
+            sensor_y = y + self.world.MARGIN - sin(b) * sensor['rayon']
+            pixel = self.world.tracer_data[int(sensor_x) + self.world.tracer_width * int(sensor_y)]
+            if pixel == 0xFF:
                 output |= (1 << i)
-            self.world.tracer.get_texture().blit_into(self.POINT, int(sensor_x), int(sensor_y), 0)
+            # Show where the sensor is if requested
+            if self.robot.world.linesensor_printer:
+                self.world.tracer.get_texture().blit_into(self.POINT[pixel], int(sensor_x), int(sensor_y), 0)
         self.io_callback(output)
 
 
@@ -122,16 +125,18 @@ class Robot():
     IMAGE = pyglet.image.load("ressources/car.png")
     IMAGE.anchor_x = IMAGE.width / 2
     IMAGE.anchor_y = IMAGE.height / 2
+    # Rotation is too slow compared to straight move otherwise
+    ROTATION_COEF = 3
 
-    def __init__(self, memory, x=50, y=50):
+    def __init__(self, memory, world, x=50, y=50):
         self.memory = memory
+        self.world = world
         self.sprite = pyglet.sprite.Sprite(self.IMAGE, x, y)
         # Motors are special builtin modules
         self.motorR = Motor(lambda : (self.memory[0x10]) & 0x0F)
         self.motorL = Motor(lambda : (self.memory[0x10] >> 4) & 0x0F)
         self.labelR = pyglet.text.Label('Right speed : 0', x=400, y=30, color=(0, 0, 0, 255))
         self.labelL = pyglet.text.Label('Left speed : 0', x=400, y=50, color=(0, 0, 0, 255))
-        self.labelSensors = pyglet.text.Label('sensors : 0', x=400, y=70, color=(0, 0, 0, 255))
         # Others modules are stored in a array
         self.modules = []
 
@@ -148,27 +153,33 @@ class Robot():
         # Get the total speed from motors' one
         # The two motors have different speed,
         # the difference of them creates a turn
-        turn = float(inv_R_linear_speed - self.motorL.linear_speed)
+        turn = float(inv_R_linear_speed) - self.motorL.linear_speed
         if inv_R_linear_speed == 0 or self.motorL.linear_speed == 0 or \
-           (inv_R_linear_speed / inv_R_linear_speed) != \
-           (self.motorL.linear_speed / self.motorL.linear_speed):
+           (copysign(inv_R_linear_speed, self.motorL.linear_speed) != \
+            inv_R_linear_speed):
             straight = 0
         else:
-            sign = inv_R_linear_speed / self.motorL.linear_speed
+            if inv_R_linear_speed < 0:
+                sign = -1
+            else:
+                sign = 1
             straight = sign * min(abs(inv_R_linear_speed), abs(self.motorL.linear_speed))
 
         # Update the robot position
-        # TODO : check colisions
         self.sprite.x += straight * cos(self.sprite.rotation * DEGTORAD) * dt
         self.sprite.y += -straight * sin(self.sprite.rotation * DEGTORAD) * dt
-        self.sprite.rotation += copysign(atan(turn), turn) * RADTODEG * dt
+        self.sprite.rotation -= copysign(atan(turn/self.sprite.height), turn) * RADTODEG * dt * self.ROTATION_COEF
         self.labelR.text = 'Right speed : {}, x : {}'.format(inv_R_linear_speed, self.sprite.x)
         self.labelL.text = 'Left speed : {}, y : {}'.format(self.motorL.linear_speed, self.sprite.y)
-        self.labelSensors.text = 'sensors : {} : {}'.format(self.sprite.rotation, turn)
+
+        # Check collisions to be sure we're not out of the window
+        self.sprite.x = min(self.sprite.x, self.world.window.width)
+        self.sprite.x = max(self.sprite.x, 0)
+        self.sprite.y = min(self.sprite.y, self.world.window.height)
+        self.sprite.y = max(self.sprite.y, 0)
 
     def draw(self):
         """Display on screen the robot"""
         self.sprite.draw()
         self.labelR.draw()
         self.labelL.draw()
-        self.labelSensors.draw()

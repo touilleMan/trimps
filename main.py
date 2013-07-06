@@ -16,10 +16,11 @@ CPU_SAMPLE = int(CPU_FREQ / SYNCHRONISE_FREQ)
 
 class Program:
     def update(self, arg):
-        # Make the CPU run the number of instructions between two synchronisations
-        self.cpu.step(CPU_SAMPLE)
-        # Now update the robot state
-        self.robot.update(SYNCHONISE_STEP)
+        if not self.world.pause:
+            # Make the CPU run the number of instructions between two synchronisations
+            self.cpu.step(CPU_SAMPLE)
+            # Now update the robot state
+            self.robot.update(SYNCHONISE_STEP)
 
     def start(self):
         self.cpu.load('tests/linetracer.mips')
@@ -28,9 +29,9 @@ class Program:
 
     def __init__(self):
         memory = Memory()
-        self.cpu = Cpu(memory)
-        self.robot = Robot(memory)
         self.world = World()
+        self.cpu = Cpu(memory)
+        self.robot = Robot(memory, self.world)
         self.world.add(self.robot)
         self.world.robot = self.robot
         # Attach the robot's modules
