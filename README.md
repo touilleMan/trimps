@@ -18,5 +18,10 @@ Thus the idea behind this project is to provide a simple environment to simulate
 
 ## State
 
-For the moment, the project is on it early days.
-But be sure things are moving fast !
+The V1.0 contains the following functionalities :
+ - a MIPS CPU emulator
+ - a robot with stepper motors
+ - a memory area for sharing I/O between the robot and the CPU
+ - a line sensor module plugged on the robot
+ - a GUI where the user can trace lines and see the robot evolutes in
+ 
