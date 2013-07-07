@@ -1,3 +1,5 @@
+#include <cstdlib>
+
 #include "memory.hpp"
 
 Memory::Memory(const unsigned size, const unsigned base_address)

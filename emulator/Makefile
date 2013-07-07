@@ -1,5 +1,6 @@
 CXX=g++
-CXXFLAGS=-W -Wall -fpic -std=c++0x -pedantic
+CXXFLAGS=-W -Wall -fPIC -std=c++0x -pedantic
+LDFLAGS=-lpython2.7
 SWIG=swig
 SWIGFLAGS=-c++ -python
 INCLUDE=-I /usr/include/python2.7/
@@ -15,7 +16,7 @@ SWIG_OBJ_PY=$(SWIG_SRC:.i=.py)
 all:$(TARGET)
 
 $(TARGET): $(OBJ) $(SWIG_OBJ)
-	$(CXX) -shared $^ -o $@ $(CXXFLAGS) $(INCLUDE)
+	$(CXX) -shared $^ -o $@ $(CXXFLAGS) $(INCLUDE) $(LDFLAGS)
 
 cmodule: $(OBJ)
 	$(CXX) -shared $^ -o $(TARGET)
