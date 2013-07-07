@@ -126,7 +126,7 @@ class Robot():
     IMAGE.anchor_x = IMAGE.width / 2
     IMAGE.anchor_y = IMAGE.height / 2
     # Rotation is too slow compared to straight move otherwise
-    ROTATION_COEF = 3
+    ROTATION_COEF = 4
 
     def __init__(self, memory, world, x=50, y=50):
         self.memory = memory
