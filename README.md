@@ -24,4 +24,4 @@ The V1.0 contains the following functionalities :
  - a memory area for sharing I/O between the robot and the CPU
  - a line sensor module plugged on the robot
  - a GUI where the user can trace lines and see the robot evolutes in
- 
+
