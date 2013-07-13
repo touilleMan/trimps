@@ -48,7 +48,7 @@ class LineSensor():
             b = sensor['angle'] + a
             sensor_x = x + cos(b) * sensor['rayon']
             sensor_y = y - sin(b) * sensor['rayon']
-            if self.world_map.pixel(sensor_x, sensor_y) == 0x00:
+            if self.world_map.pixel(sensor_x, sensor_y) == 0xFFFFFFFF:
                 output |= (1 << i)
         self.io_callback(output)
 

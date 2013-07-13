@@ -7,12 +7,16 @@ class UiWorld(QtGui.QWidget):
         super(UiWorld, self).__init__(parent)
         self.__last_point = None
         self.image = QtGui.QImage(800, 600, QtGui.QImage.Format_ARGB32)
+        self.image.fill(QtCore.Qt.white)
         self.pen = QtGui.QPen(QtCore.Qt.black, 10, QtCore.Qt.SolidLine)
         # Create a timer to refresh the image
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.update)
         self.timer.start(1000/60)
         self.robot = None
+
+    def clear(self):
+        self.image.fill(QtCore.Qt.white)
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
