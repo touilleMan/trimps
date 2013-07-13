@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 
 import unittest
+import sys
+
 
 # Check if emulator compiled version is disponible
 try:
@@ -53,7 +55,7 @@ class Test_memory(unittest.TestCase):
         memory.set_word(0x0, 0xFFFFFFFF)
         self.assertEqual(memory.get_uword(0x0), 0xFFFFFFFF)
         self.assertEqual(memory.get_sword(0x0), -1)
-	# Big negative number
+    # Big negative number
         memory.set_word(0x8, -0x0FFFFFFF)
         self.assertEqual(memory.get_sword(0x8), -0x0FFFFFFF)
         self.assertEqual(memory.get_uword(0x8), 0xF0000001)

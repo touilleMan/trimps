@@ -35,5 +35,10 @@ clean:
 	rm -f $(TARGET)
 	find . -name "*.pyc" -delete
 
-check: all
+check: check_python check_cpp
+
+check_python: clean
+	python emulator_test.py
+
+check_cpp: all
 	python emulator_test.py
