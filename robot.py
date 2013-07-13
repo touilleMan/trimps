@@ -48,16 +48,15 @@ class LineSensor():
             b = sensor['angle'] + a
             sensor_x = x + cos(b) * sensor['rayon']
             sensor_y = y - sin(b) * sensor['rayon']
-            if self.world_map.pixel(sensor_x, sensor_y) == 0xff000000:
+            if self.world_map.pixel(sensor_x, sensor_y) == 0x00:
                 output |= (1 << i)
-            self.world_map.setPixel(sensor_x, sensor_y, QtCore.Qt.red)
         self.io_callback(output)
 
 
 class Motor():
     """Represents a simple step by step electric motor
     """
-    SPEED_COEF=0.1
+    SPEED_COEF=1
     FREQUENCY_MAX=600
     FREQUENCY_MIN=50
     TIMECAP_MAX=1/FREQUENCY_MIN
