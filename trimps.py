@@ -1,44 +1,35 @@
 #! /usr/bin/env python
 
-import pyglet
+import sys
+from PyQt4 import QtCore, QtGui, uic
+from program import Program
 
-from emulator import Cpu, Memory
-from robot import Robot, LineSensor
-from world import World
-
-# 12.5MHz CPU
-CPU_FREQ = 12500000
-# Synchronise rate 1000Hz
-SYNCHRONISE_FREQ=1000
-SYNCHONISE_STEP = 1.0 / SYNCHRONISE_FREQ
-CPU_SAMPLE = int(CPU_FREQ / SYNCHRONISE_FREQ)
-
-
-class Program:
-    def update(self, arg):
-        if not self.world.pause:
-            # Make the CPU run the number of instructions between two synchronisations
-            self.cpu.step(CPU_SAMPLE)
-            # Now update the robot state
-            self.robot.update(SYNCHONISE_STEP)
-
-    def start(self):
-        self.cpu.load('tests/linetracer.mips')
-        pyglet.clock.schedule_interval(self.update, SYNCHONISE_STEP)
-        pyglet.app.run()
-
+class Ui(QtGui.QMainWindow):
     def __init__(self):
-        memory = Memory()
-        self.world = World()
-        self.cpu = Cpu(memory)
-        self.robot = Robot(memory, self.world)
-        self.world.add(self.robot)
-        self.world.robot = self.robot
-        # Attach the robot's modules
-        line_sensor = LineSensor(lambda out: memory.set_byte(0x21, out), self.world, self.robot)
-        self.robot.modules.append(line_sensor)
+        super(Ui, self).__init__()
+        self.ui = uic.loadUi('mainwindow.ui', self)
+        self.ui.button_run.clicked.connect(self.run)
+        self.ui.show()
+        # Program is not started at the beginning
+        self.program = Program(self.ui.widget_world.image)
+        self.program_timer = QtCore.QTimer(self)
+        self.program_timer.timeout.connect(self.program.update)
+        self.program_running = False
+        # Don't forget to connect the robot to the Qt world
+        self.ui.widget_world.robot = self.program.robot
 
+    def run(self):
+        """Create the program and connect a timer to run it
+           If the program is already started, stop it
+        """
+        if not self.program_running:
+            self.program_timer.start(self.program.synchronise_step * 1000)
+        else:
+            self.program_timer.stop()
+        self.program_running = not self.program_running
 
 if __name__ == '__main__':
-    pg = Program()
-    pg.start()
+    # Create the Ui
+    app = QtGui.QApplication(sys.argv)
+    w = Ui()
+    sys.exit(app.exec_())
