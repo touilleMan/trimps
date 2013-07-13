@@ -40,8 +40,8 @@ class LineSensor():
         # To get back the value of the pixel under each sensor
         # we have to project the local coordinates of the sensors
         # in the coordinates the robot is
-        x = self.robot.pos_x + self.robot.half_width
-        y = self.robot.pos_y + self.robot.half_height
+        x = self.robot.pos_x
+        y = self.robot.pos_y
         a = self.robot.rotation * DEGTORAD
         for i in xrange(7):
             sensor = self.sensors[i]
@@ -50,15 +50,14 @@ class LineSensor():
             sensor_y = y - sin(b) * sensor['rayon']
             if self.world_map.pixel(sensor_x, sensor_y) == 0xff000000:
                 output |= (1 << i)
-            # Show where the sensor is if requested
-#            if self.world_map.linesensor_printer:
             self.world_map.setPixel(sensor_x, sensor_y, QtCore.Qt.red)
         self.io_callback(output)
 
 
 class Motor():
-    """Represents a simple step by step electric motor"""
-    SPEED_COEF=3
+    """Represents a simple step by step electric motor
+    """
+    SPEED_COEF=0.1
     FREQUENCY_MAX=600
     FREQUENCY_MIN=50
     TIMECAP_MAX=1/FREQUENCY_MIN
@@ -119,31 +118,45 @@ class Motor():
 
 
 class Robot():
-    """Physical representation of the robot"""
-    # IMAGE.anchor_x = IMAGE.width / 2
-    # IMAGE.anchor_y = IMAGE.height / 2
+    """Physical representation of the robot
+    """
     # Rotation is too slow compared to straight move otherwise
     ROTATION_COEF = 4
 
     def __init__(self, memory, world_map, x=50, y=50):
-        self.sprite = QtGui.QImage("ressources/car.png")
+        self.sprite = QtGui.QPixmap("ressources/car.png")
         self.memory = memory
         self.world_map = world_map
         self.pos_x = x
         self.pos_y = y
         self.half_width = self.sprite.width() / 2
         self.half_height = self.sprite.height() / 2
-        self.rotation = 45
+        self.rotation = 90
         # Motors are special builtin modules
         self.motorR = Motor(lambda : (self.memory[0x10]) & 0x0F)
         self.motorL = Motor(lambda : (self.memory[0x10] >> 4) & 0x0F)
-        # self.labelR = pyglet.text.Label('Right speed : 0', x=400, y=30, color=(0, 0, 0, 255))
-        # self.labelL = pyglet.text.Label('Left speed : 0', x=400, y=50, color=(0, 0, 0, 255))
         # Others modules are stored in a array
         self.modules = []
 
+    # Qt image is reference according to it top left corner
+    # img_* functions convert the coordinates
+
+    def img_x(self):
+        return self.pos_x - self.half_width
+
+    def img_y(self):
+        return self.pos_y - self.half_height
+
+    def img_set_x(self, x):
+        self.pos_x = x + self.half_width
+
+    def img_set_y(self, y):
+        self.pos_y = y + self.half_height
+
+
     def update(self, dt):
-        """Update the robot physical state"""
+        """Update the robot physical state
+        """
         # Update the modules
         self.motorR.update(dt)
         self.motorL.update(dt)
@@ -171,8 +184,6 @@ class Robot():
         self.pos_x += straight * cos(self.rotation * DEGTORAD) * dt
         self.pos_y += -straight * sin(self.rotation * DEGTORAD) * dt
         self.rotation -= copysign(atan(turn/self.sprite.height()), turn) * RADTODEG * dt * self.ROTATION_COEF
-        # self.labelR.text = 'Right speed : {}, x : {}'.format(inv_R_linear_speed, self.pos_x)
-        # self.labelL.text = 'Left speed : {}, y : {}'.format(self.motorL.linear_speed, self.pos_y)
 
         # Check collisions to be sure we're not out of the window
         self.pos_x = min(self.pos_x, self.world_map.width())

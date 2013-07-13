@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>818</width>
-    <height>616</height>
+    <width>913</width>
+    <height>774</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,21 +24,21 @@
        <attribute name="title">
         <string>Code</string>
        </attribute>
-       <widget class="QTextEdit" name="textEdit">
+       <widget class="QTextEdit" name="text_compile_input">
         <property name="geometry">
          <rect>
-          <x>150</x>
-          <y>10</y>
-          <width>421</width>
-          <height>321</height>
+          <x>330</x>
+          <y>20</y>
+          <width>451</width>
+          <height>521</height>
          </rect>
         </property>
        </widget>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="button_compile">
         <property name="geometry">
          <rect>
-          <x>20</x>
-          <y>30</y>
+          <x>100</x>
+          <y>320</y>
           <width>99</width>
           <height>27</height>
          </rect>
@@ -47,13 +47,13 @@
          <string>Compile</string>
         </property>
        </widget>
-       <widget class="QTreeView" name="treeView">
+       <widget class="QTreeView" name="view_compile_output">
         <property name="geometry">
          <rect>
           <x>20</x>
-          <y>140</y>
-          <width>111</width>
-          <height>41</height>
+          <y>380</y>
+          <width>281</width>
+          <height>161</height>
          </rect>
         </property>
         <property name="frameShape">
@@ -71,7 +71,7 @@
           <x>9</x>
           <y>9</y>
           <width>658</width>
-          <height>498</height>
+          <height>531</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
@@ -82,8 +82,8 @@
           <widget class="UiWorld" name="widget_world" native="true">
            <property name="minimumSize">
             <size>
-             <width>640</width>
-             <height>480</height>
+             <width>800</width>
+             <height>600</height>
             </size>
            </property>
            <property name="autoFillBackground">
@@ -94,14 +94,23 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QPushButton" name="button_run">
-           <property name="text">
-            <string>Run</string>
-           </property>
-          </widget>
-         </item>
         </layout>
+       </widget>
+       <widget class="QPushButton" name="button_run">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>640</y>
+          <width>640</width>
+          <height>27</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Run</string>
+        </property>
+        <property name="shortcut">
+         <string>Space</string>
+        </property>
        </widget>
       </widget>
      </widget>
@@ -113,7 +122,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>818</width>
+     <width>913</width>
      <height>25</height>
     </rect>
    </property>
