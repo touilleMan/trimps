@@ -18,10 +18,11 @@ Thus the idea behind this project is to provide a simple environment to simulate
 
 ## State
 
-The V1.0 contains the following functionalities :
- - a MIPS CPU emulator
+The V1.1 contains the following functionalities :
+ - a MIPS CPU emulator with two implementations : C++ and python
+   - note : the C++ version is about 10times faster that the python version but is not avaible for windows so far
  - a robot with stepper motors
  - a memory area for sharing I/O between the robot and the CPU
  - a line sensor module plugged on the robot
- - a GUI where the user can trace lines and see the robot evolutes in
-
+ - a GUI in Qt where the user can trace lines and see the robot evolutes in
+ - an editor inside the GUI to quickly write and test code on the robot
