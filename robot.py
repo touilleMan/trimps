@@ -2,6 +2,7 @@
 
 from math import cos, sin, atan, pi, copysign
 from PyQt4 import QtCore, QtGui
+import emulator
 
 DEGTORAD = pi /180
 RADTODEG = 1.0 / DEGTORAD
@@ -48,7 +49,11 @@ class LineSensor():
             b = sensor['angle'] + a
             sensor_x = x + cos(b) * sensor['rayon']
             sensor_y = y - sin(b) * sensor['rayon']
-            if self.world_map.pixel(sensor_x, sensor_y) == 0xFFFFFFFF:
+            # If the sensor is out of the image, consider it sees white
+            if not (0 <= sensor_x < self.world_map.width() and \
+              0 <= sensor_y < self.world_map.height()):
+                output |= (1 << i)
+            elif self.world_map.pixel(sensor_x, sensor_y) == 0xFFFFFFFF:
                 output |= (1 << i)
         self.io_callback(output)
 
@@ -56,7 +61,12 @@ class LineSensor():
 class Motor():
     """Represents a simple step by step electric motor
     """
-    SPEED_COEF=1
+    if emulator.IMPLEMENTATION == "python":
+        # Python version is really too slow, "cheat" a bit...
+        SPEED_COEF=3
+    else: # CPP version, faster, really faster !
+        SPEED_COEF=0.5
+
     FREQUENCY_MAX=600
     FREQUENCY_MIN=50
     TIMECAP_MAX=1/FREQUENCY_MIN
@@ -120,7 +130,7 @@ class Robot():
     """Physical representation of the robot
     """
     # Rotation is too slow compared to straight move otherwise
-    ROTATION_COEF = 4
+    ROTATION_COEF = 2
 
     def __init__(self, memory, world_map, x=50, y=50):
         self.sprite = QtGui.QPixmap("ressources/car.png")
