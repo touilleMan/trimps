@@ -55,18 +55,21 @@ In fact it was even worse than that given I wrote my own assembler <a href="http
 <h2>
 <a name="state" class="anchor" href="#state"><span class="octicon octicon-link"></span></a>State</h2>
 
-<p>The V1.0 contains the following functionalities :</p>
+<p>The V1.1 contains the following functionalities :</p>
 
 <ul>
-<li>a MIPS CPU emulator</li>
+<li>a MIPS CPU emulator with two implementations : C++ and python
+
+<ul>
+<li>note : the C++ version is about 10times faster that the python version but is not avaible for windows so far</li>
+</ul>
+</li>
 <li>a robot with stepper motors</li>
 <li>a memory area for sharing I/O between the robot and the CPU</li>
 <li>a line sensor module plugged on the robot</li>
-<li>a GUI where the user can trace lines and see the robot evolutes in</li>
-</ul><h2>
-<a name="download" class="anchor" href="#download"><span class="octicon octicon-link"></span></a>Download</h2>
-
-<p>see : <a href="https://github.com/touilleMan/trimps/releases">https://github.com/touilleMan/trimps/releases</a></p>
+<li>a GUI in Qt where the user can trace lines and see the robot evolutes in</li>
+<li>an editor inside the GUI to quickly write and test code on the robot</li>
+</ul>
       </section>
     </div>
 
