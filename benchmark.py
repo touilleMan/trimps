@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from emulator import Cpu
+from emulator import Cpu, IMPLEMENTATION
 from datetime import datetime
 
 import sys
@@ -15,7 +15,7 @@ if __name__ == '__main__':
 #    cpu.load("tests/battle.mips")
     cpu.load("tests/linetracer.mips")
 
-    print "\t*** BENCHMARK ***"
+    print "\t*** BENCHMARK : {} version ***".format(IMPLEMENTATION)
     print "Executing {} instructions @ {}MHz".format(count, float(count) / 1000000)
     print "Should take 1s on real MIPS CPU"
     tstart = datetime.now()
