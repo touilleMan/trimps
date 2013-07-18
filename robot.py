@@ -35,7 +35,7 @@ class LineSensor():
             w += sensor_space
 
     def update(self, dt):
-        """Update the sensor
+        """Update the sensor according to the world
         """
         output = 0x00
         # To get back the value of the pixel under each sensor
@@ -50,8 +50,8 @@ class LineSensor():
             sensor_x = x + cos(b) * sensor['rayon']
             sensor_y = y - sin(b) * sensor['rayon']
             # If the sensor is out of the image, consider it sees white
-            if not (0 <= sensor_x < self.world_map.width() and \
-              0 <= sensor_y < self.world_map.height()):
+            if not ((0 <= sensor_x < self.world_map.width()) and
+                    (0 <= sensor_y < self.world_map.height())):
                 output |= (1 << i)
             elif self.world_map.pixel(sensor_x, sensor_y) == 0xFFFFFFFF:
                 output |= (1 << i)
@@ -59,7 +59,7 @@ class LineSensor():
 
 
 class Motor():
-    """Represents a simple step by step electric motor
+    """Represents a simple stepper electric motor
     """
     if emulator.IMPLEMENTATION == "python":
         # Python version is really too slow, "cheat" a bit...
@@ -98,9 +98,9 @@ class Motor():
             frequency = 1 / self.lastchange
 
             # Verify the magnet change is valid to make the motor move
-            if len([ m for m in magnets if m == 1 ]) == 1 and \
-               len([ m for m in self.magnets if m == 1 ]) == 1 and \
-               self.FREQUENCY_MIN < frequency < self.FREQUENCY_MAX:
+            if ((len([ m for m in magnets if m == 1 ]) == 1) and
+                (len([ m for m in self.magnets if m == 1 ]) == 1) and
+                (self.FREQUENCY_MIN < frequency < self.FREQUENCY_MAX)):
                 # Does the motor goes backward or not ?
                 for i in [ j for j in xrange(4) if self.magnets[j] == 1 ]:
                     if magnets[(i + 1) % 4] == 1:
@@ -178,9 +178,10 @@ class Robot():
         # The two motors have different speed,
         # the difference of them creates a turn
         turn = float(inv_R_linear_speed) - self.motorL.linear_speed
-        if inv_R_linear_speed == 0 or self.motorL.linear_speed == 0 or \
-           (copysign(inv_R_linear_speed, self.motorL.linear_speed) != \
-            inv_R_linear_speed):
+        if ((inv_R_linear_speed == 0) or
+            (self.motorL.linear_speed == 0) or
+            (copysign(inv_R_linear_speed, self.motorL.linear_speed) !=
+            inv_R_linear_speed)):
             straight = 0
         else:
             if inv_R_linear_speed < 0:

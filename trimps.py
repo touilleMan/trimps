@@ -16,7 +16,7 @@ class CompilationError(Exception):
         return self.msg
 
 def compile_buffer(input_buffer, mode='binary'):
-    """Wrap the external compilator
+    """Wrap the external compiler
     """
     if mode not in ("binary", "vhdl", "print"):
         raise ValueError(mode + " is not a valid compilation mode")
@@ -39,6 +39,8 @@ def compile_buffer(input_buffer, mode='binary'):
 
 
 class Ui(QtGui.QMainWindow):
+    """Qt GUI
+    """
     def __init__(self):
         super(Ui, self).__init__()
         self.ui = uic.loadUi('mainwindow.ui', self)
@@ -51,7 +53,7 @@ class Ui(QtGui.QMainWindow):
         self.compile_out_bin = None
         self.compile_out_vhdl = ""
         self.ui.button_compile.clicked.connect(self.update_compile)
-        # Program is not started at the beginning
+        # Robot simulator program
         self.program = Program(self.ui.widget_world.image)
         self.program_timer = QtCore.QTimer(self)
         self.program_timer.timeout.connect(self.program.update)
@@ -60,6 +62,8 @@ class Ui(QtGui.QMainWindow):
         self.ui.widget_world.robot = self.program.robot
 
     def update_compile(self):
+        """Compile the source buffer
+        """
         palette = self.ui.textEdit_console.palette()
         try:
             # Reset the console's background

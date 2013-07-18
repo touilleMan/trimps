@@ -12,7 +12,6 @@ if __name__ == '__main__':
     count = DEFAULT_FREQUENCY
     datetime.now()
     cpu = Cpu()
-#    cpu.load("tests/battle.mips")
     cpu.load("tests/linetracer.mips")
 
     print "\t*** BENCHMARK : {} version ***".format(IMPLEMENTATION)
@@ -20,10 +19,6 @@ if __name__ == '__main__':
     print "Should take 1s on real MIPS CPU"
     tstart = datetime.now()
 
-#    while True:
-#        sys.stdin.readline()
-#        cpu.step()
-#        print cpu
     cpu.step(count)
 #    cProfile.run("cpu.step(count)")
 
